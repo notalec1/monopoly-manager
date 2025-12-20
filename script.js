@@ -1,31 +1,24 @@
-// Import Firebase functions from the CDN
+// --- CORRECT IMPORTS (Use these for Browser) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, update, set, remove } 
+import { getDatabase, ref, push, onValue, set, remove } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// --- YOUR CONFIGURATION ---
 const firebaseConfig = {
-  apiKey: "AIzaSyBzH2VEhPHMYNVIWxtnrspGsg-Am8yN1fI",
-  authDomain: "monoplymanager.firebaseapp.com",
-  projectId: "monoplymanager",
-  storageBucket: "monoplymanager.firebasestorage.app",
-  messagingSenderId: "523334526288",
-  appId: "1:523334526288:web:9c3a039c984edfa6477855",
-  measurementId: "G-716Y6EQR1C"
+    apiKey: "AIzaSyBzH2VEhPHMYNVIWxtnrspGsg-Am8yN1fI",
+    authDomain: "monoplymanager.firebaseapp.com",
+    projectId: "monoplymanager",
+    storageBucket: "monoplymanager.firebasestorage.app",
+    messagingSenderId: "523334526288",
+    appId: "1:523334526288:web:9c3a039c984edfa6477855",
+    measurementId: "G-716Y6EQR1C"
 };
 
-// Initialize Firebase
+// Initialize
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- GLOBAL REFERENCES ---
+// --- GLOBAL EXPORTS (Essential for HTML onclick to work) ---
 window.addPlayer = addPlayer;
 window.rollDice = rollDice;
 window.resetGame = resetGame;
@@ -33,83 +26,84 @@ window.updateMoney = updateMoney;
 window.addProperty = addProperty;
 window.deleteProperty = deleteProperty;
 
-// --- REALTIME LISTENERS ---
-// This listens for ANY change in the database and updates the screen
-const playersRef = ref(db, 'players');
-const logsRef = ref(db, 'logs');
-const diceRef = ref(db, 'dice');
+// --- LISTENERS ---
 
+// 1. Players Listener
+const playersRef = ref(db, 'players');
 onValue(playersRef, (snapshot) => {
     const playersGrid = document.getElementById("playersGrid");
-    playersGrid.innerHTML = ""; // Clear current
+    playersGrid.innerHTML = "";
     const data = snapshot.val();
 
     if (data) {
         Object.keys(data).forEach(key => {
-            const p = data[key];
-            renderPlayerCard(key, p);
+            renderPlayerCard(key, data[key]);
         });
     }
 });
 
+// 2. Logs Listener
+const logsRef = ref(db, 'logs');
 onValue(logsRef, (snapshot) => {
     const list = document.getElementById("logList");
     list.innerHTML = "";
     const data = snapshot.val();
     if (data) {
-        // Convert object to array and reverse to show newest first
         const logs = Object.values(data).reverse(); 
         logs.forEach(msg => {
             const li = document.createElement("li");
-            li.textContent = msg;
+            li.innerHTML = msg; // Allows HTML inside logs
             list.appendChild(li);
         });
     }
 });
 
+// 3. Dice Listener
+const diceRef = ref(db, 'dice');
 onValue(diceRef, (snapshot) => {
     const val = snapshot.val();
     if(val) document.getElementById("diceResult").textContent = val;
 });
 
-// --- ACTIONS ---
+// --- FUNCTIONS ---
 
 function addPlayer() {
-    const nameInput = document.getElementById("newPlayerName");
-    const name = nameInput.value.trim();
+    const input = document.getElementById("newPlayerName");
+    const name = input.value.trim();
     if (!name) return;
 
-    // Push new player to DB
     push(playersRef, {
         name: name,
         money: 1500,
         properties: {}
     });
     
-    log(`${name} joined the game.`);
-    nameInput.value = "";
+    log(`<b>${name}</b> joined the game.`);
+    input.value = "";
 }
 
 function renderPlayerCard(id, player) {
     const grid = document.getElementById("playersGrid");
     
-    // Calculate color
-    let color = "#00c853";
-    if (player.money < 1000) color = "#ffab00";
-    if (player.money < 500) color = "#ff1744";
+    // Dynamic color coding
+    let colorClass = "#10b981"; // Green
+    if (player.money < 1000) colorClass = "#f59e0b"; // Orange
+    if (player.money < 500) colorClass = "#ef4444"; // Red
 
-    // Build Properties HTML
+    // Build Properties List
     let propsHtml = "";
     if (player.properties) {
         Object.entries(player.properties).forEach(([propId, propName]) => {
             propsHtml += `
-            <div class="prop-item">
-                <span><i class="fa-solid fa-house"></i> ${propName}</span>
-                <button class="btn-del" onclick="deleteProperty('${id}', '${propId}', '${player.name}', '${propName}')">
-                    <i class="fa-solid fa-trash"></i>
+            <div class="prop-tag">
+                <span><i class="fa-solid fa-house-chimney"></i> ${propName}</span>
+                <button class="btn-del-prop" onclick="deleteProperty('${id}', '${propId}', '${player.name}', '${propName}')">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>`;
         });
+    } else {
+        propsHtml = `<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:10px;">No properties yet</div>`;
     }
 
     const card = document.createElement("div");
@@ -117,21 +111,21 @@ function renderPlayerCard(id, player) {
     card.innerHTML = `
         <div class="card-header">
             <h3>${player.name}</h3>
-            <div class="money" style="color:${color}">$${player.money}</div>
+            <div class="money-badge" style="color:${colorClass}">$${player.money}</div>
         </div>
         
-        <div class="controls">
-            <input type="number" id="amount-${id}" placeholder="Amount">
+        <div class="control-row">
+            <input type="number" id="amount-${id}" placeholder="Amount...">
             <button class="btn-add" onclick="updateMoney('${id}', '${player.name}', 1)">+</button>
             <button class="btn-pay" onclick="updateMoney('${id}', '${player.name}', -1)">-</button>
         </div>
 
-        <div class="controls">
-            <input type="text" id="prop-${id}" placeholder="New Property">
-            <button style="background:#3d5afe; color:white" onclick="addProperty('${id}', '${player.name}')">Buy</button>
+        <div class="control-row">
+            <input type="text" id="prop-${id}" placeholder="Property Name...">
+            <button class="btn-buy" onclick="addProperty('${id}', '${player.name}')">Buy</button>
         </div>
 
-        <div class="properties-list">
+        <div class="props-container">
             ${propsHtml}
         </div>
     `;
@@ -143,22 +137,17 @@ function updateMoney(id, name, multiplier) {
     const amount = parseInt(input.value);
     if (!amount) return;
 
-    // We must read the current money first (simplified for this example)
-    // In a real app we might use transaction(), but getting snapshot is easier for beginners
-    getDatabase(app); 
-    // Actually, we can use a transaction or simple read.
-    // Let's use simple read for simplicity
+    // Direct read for simplicity
     const pRef = ref(db, `players/${id}/money`);
-    
     onValue(pRef, (snap) => {
         const current = snap.val();
         const newVal = current + (amount * multiplier);
-        // Update DB (This will trigger the UI update automatically!)
         set(pRef, newVal);
     }, { onlyOnce: true });
 
     const action = multiplier > 0 ? "received" : "paid";
-    log(`${name} ${action} $${amount}`);
+    const color = multiplier > 0 ? "#10b981" : "#ef4444";
+    log(`${name} ${action} <span style="color:${color}">$${amount}</span>`);
     input.value = "";
 }
 
@@ -167,16 +156,14 @@ function addProperty(id, name) {
     const propName = input.value.trim();
     if (!propName) return;
 
-    const propRef = ref(db, `players/${id}/properties`);
-    push(propRef, propName);
-    
-    log(`${name} bought ${propName}`);
+    push(ref(db, `players/${id}/properties`), propName);
+    log(`${name} bought <b>${propName}</b>`);
     input.value = "";
 }
 
 function deleteProperty(playerId, propId, playerName, propName) {
     remove(ref(db, `players/${playerId}/properties/${propId}`));
-    log(`${playerName} sold/lost ${propName}`);
+    log(`${playerName} sold/lost <b>${propName}</b>`);
 }
 
 function rollDice() {
@@ -187,18 +174,18 @@ function rollDice() {
     if (d1 === d2) msg += " (DOUBLES!)";
     
     set(diceRef, msg);
-    log(`Dice: ${msg}`);
+    log(`Dice Rolled: ${msg}`);
 }
 
 function log(msg) {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    push(logsRef, `[${time}] ${msg}`);
+    push(logsRef, `<span style="color:#64748b; font-size:0.8em">[${time}]</span> ${msg}`);
 }
 
 function resetGame() {
-    if(confirm("Are you sure you want to wipe all data?")) {
+    if(confirm("⚠ WARNING: This will delete ALL players and history. Continue?")) {
         set(playersRef, {});
         set(logsRef, {});
-        set(diceRef, "Roll!");
+        set(diceRef, "--");
     }
 }
