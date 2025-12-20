@@ -1,9 +1,9 @@
-// --- CORRECT IMPORTS (Use these for Browser) ---
+// --- 1. IMPORTS (ONLY USE THIS SET) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, remove } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// --- YOUR CONFIGURATION ---
+// --- 2. CONFIGURATION ---
 const firebaseConfig = {
     apiKey: "AIzaSyBzH2VEhPHMYNVIWxtnrspGsg-Am8yN1fI",
     authDomain: "monoplymanager.firebaseapp.com",
@@ -14,11 +14,12 @@ const firebaseConfig = {
     measurementId: "G-716Y6EQR1C"
 };
 
-// Initialize
+// --- 3. INITIALIZE FIREBASE ---
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- GLOBAL EXPORTS (Essential for HTML onclick to work) ---
+// --- 4. EXPORT FUNCTIONS TO HTML (Crucial step!) ---
+// Because this is a module, the HTML cannot see the functions unless we attach them to 'window'
 window.addPlayer = addPlayer;
 window.rollDice = rollDice;
 window.resetGame = resetGame;
@@ -26,13 +27,13 @@ window.updateMoney = updateMoney;
 window.addProperty = addProperty;
 window.deleteProperty = deleteProperty;
 
-// --- LISTENERS ---
+// --- 5. REALTIME LISTENERS ---
 
-// 1. Players Listener
+// Listener: Sync Players
 const playersRef = ref(db, 'players');
 onValue(playersRef, (snapshot) => {
     const playersGrid = document.getElementById("playersGrid");
-    playersGrid.innerHTML = "";
+    playersGrid.innerHTML = ""; // Clear existing cards
     const data = snapshot.val();
 
     if (data) {
@@ -42,30 +43,31 @@ onValue(playersRef, (snapshot) => {
     }
 });
 
-// 2. Logs Listener
+// Listener: Sync Logs
 const logsRef = ref(db, 'logs');
 onValue(logsRef, (snapshot) => {
     const list = document.getElementById("logList");
     list.innerHTML = "";
     const data = snapshot.val();
     if (data) {
+        // Show newest logs first
         const logs = Object.values(data).reverse(); 
         logs.forEach(msg => {
             const li = document.createElement("li");
-            li.innerHTML = msg; // Allows HTML inside logs
+            li.innerHTML = msg; 
             list.appendChild(li);
         });
     }
 });
 
-// 3. Dice Listener
+// Listener: Sync Dice
 const diceRef = ref(db, 'dice');
 onValue(diceRef, (snapshot) => {
     const val = snapshot.val();
     if(val) document.getElementById("diceResult").textContent = val;
 });
 
-// --- FUNCTIONS ---
+// --- 6. GAME FUNCTIONS ---
 
 function addPlayer() {
     const input = document.getElementById("newPlayerName");
@@ -85,12 +87,12 @@ function addPlayer() {
 function renderPlayerCard(id, player) {
     const grid = document.getElementById("playersGrid");
     
-    // Dynamic color coding
+    // Determine Color Badge
     let colorClass = "#10b981"; // Green
     if (player.money < 1000) colorClass = "#f59e0b"; // Orange
     if (player.money < 500) colorClass = "#ef4444"; // Red
 
-    // Build Properties List
+    // Build Properties List HTML
     let propsHtml = "";
     if (player.properties) {
         Object.entries(player.properties).forEach(([propId, propName]) => {
@@ -106,6 +108,7 @@ function renderPlayerCard(id, player) {
         propsHtml = `<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:10px;">No properties yet</div>`;
     }
 
+    // Create Card Element
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -137,8 +140,8 @@ function updateMoney(id, name, multiplier) {
     const amount = parseInt(input.value);
     if (!amount) return;
 
-    // Direct read for simplicity
     const pRef = ref(db, `players/${id}/money`);
+    // Read current value once, then update
     onValue(pRef, (snap) => {
         const current = snap.val();
         const newVal = current + (amount * multiplier);
@@ -189,4 +192,3 @@ function resetGame() {
         set(diceRef, "--");
     }
 }
-// retry after deploy failure
