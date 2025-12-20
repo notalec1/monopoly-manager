@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monopoly Cloud 2025</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <h2><i class="fa-solid fa-monopoly"></i> MonoManager</h2>
+            <div class="setup-box">
+                <input type="text" id="newPlayerName" placeholder="Player Name">
+                <button onclick="addPlayer()"><i class="fa-solid fa-user-plus"></i> Add</button>
+            </div>
+            
+            <div class="dice-section">
+                <button class="btn-dice" onclick="rollDice()">🎲 Roll Dice</button>
+                <div id="diceResult" class="dice-display">Roll!</div>
+            </div>
+
+            <div class="log-section">
+                <h3>Live Feed</h3>
+                <ul id="logList"></ul>
+            </div>
+            
+            <div class="reset-section">
+                <button class="btn-danger" onclick="resetGame()">⚠ Reset Game</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="dashboard">
+            <div id="playersGrid" class="players-grid">
+                <!-- Player Cards will appear here automatically -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
