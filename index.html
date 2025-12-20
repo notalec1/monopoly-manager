@@ -4,45 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monopoly Cloud 2025</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome for Icons -->
+    
+    <!-- Google Fonts: Inter (Modern, Clean) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="app-container">
+    <div class="app-wrapper">
         <!-- Sidebar -->
         <nav class="sidebar">
-            <h2><i class="fa-solid fa-monopoly"></i> MonoManager</h2>
-            <div class="setup-box">
-                <input type="text" id="newPlayerName" placeholder="Player Name">
-                <button onclick="addPlayer()"><i class="fa-solid fa-user-plus"></i> Add</button>
-            </div>
-            
-            <div class="dice-section">
-                <button class="btn-dice" onclick="rollDice()">🎲 Roll Dice</button>
-                <div id="diceResult" class="dice-display">Roll!</div>
+            <div class="brand">
+                <i class="fa-solid fa-dice-d20"></i>
+                <span>MonoManager</span>
             </div>
 
-            <div class="log-section">
-                <h3>Live Feed</h3>
-                <ul id="logList"></ul>
+            <div class="sidebar-content">
+                <div class="section-title">GAME CONTROL</div>
+                
+                <div class="input-group">
+                    <input type="text" id="newPlayerName" placeholder="Player Name...">
+                    <button class="btn-icon" onclick="addPlayer()">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+
+                <div class="dice-card">
+                    <div class="dice-header">
+                        <i class="fa-solid fa-dice"></i> Dice Roll
+                    </div>
+                    <div id="diceResult" class="dice-result">--</div>
+                    <button class="btn-primary full-width" onclick="rollDice()">ROLL</button>
+                </div>
+
+                <div class="section-title">ACTIVITY LOG</div>
+                <div class="log-container">
+                    <ul id="logList"></ul>
+                </div>
             </div>
-            
-            <div class="reset-section">
-                <button class="btn-danger" onclick="resetGame()">⚠ Reset Game</button>
+
+            <div class="sidebar-footer">
+                <button class="btn-danger full-width" onclick="resetGame()">
+                    <i class="fa-solid fa-skull"></i> Reset Data
+                </button>
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="dashboard">
-            <div id="playersGrid" class="players-grid">
-                <!-- Player Cards will appear here automatically -->
+        <!-- Main Dashboard -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1>Live Dashboard</h1>
+                <div class="status-indicator">
+                    <span class="dot"></span> Live Sync
+                </div>
+            </header>
+
+            <div id="playersGrid" class="grid-container">
+                <!-- Cards injected via JS -->
             </div>
         </main>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
