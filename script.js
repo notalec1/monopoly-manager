@@ -189,3 +189,4 @@ function resetGame() {
         set(diceRef, "--");
     }
 }
+// retry after deploy failure
