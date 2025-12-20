@@ -1,0 +1,170 @@
+:root {
+    --bg: #121212;
+    --sidebar: #1e1e1e;
+    --card: #252526;
+    --accent: #3d5afe;
+    --text: #e0e0e0;
+    --green: #00c853;
+    --red: #ff1744;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    height: 100%;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 300px;
+    background-color: var(--sidebar);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-right: 1px solid #333;
+}
+
+input {
+    background: #333;
+    border: none;
+    padding: 10px;
+    color: white;
+    border-radius: 5px;
+    width: 65%;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.setup-box button {
+    background: var(--accent);
+    color: white;
+    width: 30%;
+}
+
+/* Dice */
+.btn-dice {
+    width: 100%;
+    background: #6200ea;
+    color: white;
+    font-size: 1.2rem;
+    padding: 15px;
+}
+
+.dice-display {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-top: 10px;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+/* Logs */
+.log-section {
+    flex-grow: 1;
+    overflow-y: auto;
+    background: #121212;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.log-section ul {
+    list-style: none;
+    padding: 0;
+    font-size: 0.9rem;
+    color: #bbb;
+}
+
+.log-section li {
+    margin-bottom: 5px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
+}
+
+/* Dashboard */
+.dashboard {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+/* Player Card */
+.card {
+    background-color: var(--card);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    border-top: 4px solid var(--accent);
+    transition: transform 0.2s;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.money {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--green);
+}
+
+.controls {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.controls input {
+    width: 100px;
+}
+
+.btn-add { background: var(--green); color: black; }
+.btn-pay { background: var(--red); color: white; }
+
+.properties-list {
+    min-height: 50px;
+    background: #181818;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.prop-item {
+    display: flex;
+    justify-content: space-between;
+    background: #333;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+}
+
+.btn-del {
+    background: transparent;
+    color: var(--red);
+    padding: 0;
+}
