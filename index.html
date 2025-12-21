@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monopoly Cloud 2.0</title>
+    <title>Monopoly Cloud 3.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,12 +16,17 @@
         <!-- Sidebar -->
         <nav class="sidebar">
             <div class="brand">
-                <i class="fa-solid fa-city"></i> MonoManager
+                <i class="fa-solid fa-city"></i> MonoManager <span style="font-size:0.5em; opacity:0.5">v3.0</span>
+            </div>
+
+            <!-- Game Timer -->
+            <div class="timer-card">
+                <i class="fa-regular fa-clock"></i> <span id="gameTimer">00:00:00</span>
             </div>
 
             <div class="sidebar-content">
                 
-                <!-- NEW: Free Parking Pot -->
+                <!-- Free Parking Pot -->
                 <div class="pot-card">
                     <div style="font-size:0.8rem; text-transform:uppercase; opacity:0.8;">Free Parking Pot</div>
                     <div id="potAmount" class="pot-amount">$0</div>
@@ -29,11 +36,9 @@
                         <button class="btn-pot" onclick="addToPot(100)">+$100</button>
                     </div>
                     
-                    <!-- Pot Claim Section -->
                     <div class="claim-row">
                         <select id="potWinner" class="claim-select">
                             <option value="">Select Winner...</option>
-                            <!-- Populated by JS -->
                         </select>
                         <button class="btn-claim" onclick="claimPot()">CLAIM</button>
                     </div>
@@ -61,7 +66,7 @@
 
             <div style="margin-top:auto;">
                 <button class="btn-danger" onclick="resetGame()">
-                    <i class="fa-solid fa-trash"></i> Reset Game
+                    <i class="fa-solid fa-bomb"></i> Nuke Game
                 </button>
             </div>
         </nav>
