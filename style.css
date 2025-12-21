@@ -30,134 +30,114 @@ body {
 
 /* --- SIDEBAR --- */
 .sidebar {
-    width: 340px;
+    width: 320px;
     background-color: var(--bg-sidebar);
     border-right: 1px solid #334155;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    gap: 20px;
-    flex-shrink: 0;
-}
-
-.brand {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sidebar-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+    padding: 15px;
     gap: 15px;
-    overflow-y: auto;
+    flex-shrink: 0;
+    z-index: 10;
 }
 
-/* NEW: Free Parking Pot */
+.brand { font-size: 1.4rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+.timer-card {
+    background: #0f172a; padding: 10px; border-radius: 8px; text-align: center;
+    font-family: monospace; font-size: 1.2rem; color: var(--text-muted); border: 1px solid #334155;
+}
+
+.sidebar-content { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+
+/* Pot & Dice */
 .pot-card {
     background: linear-gradient(135deg, #f59e0b, #d97706);
-    padding: 15px;
-    border-radius: 12px;
-    text-align: center;
-    color: #fff;
+    padding: 15px; border-radius: 12px; text-align: center; color: #fff;
     box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
 }
-.pot-amount { font-size: 2rem; font-weight: 800; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.pot-amount { font-size: 1.8rem; font-weight: 800; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 .pot-controls { display: flex; gap: 5px; margin-top: 10px; }
-.btn-pot { background: rgba(0,0,0,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; flex-grow: 1; }
-.btn-pot:hover { background: rgba(0,0,0,0.4); }
+.btn-pot { background: rgba(0,0,0,0.2); border: none; color: white; padding: 5px; border-radius: 5px; cursor: pointer; flex-grow: 1; }
+.btn-pot:active { transform: scale(0.95); }
 
 .claim-row { display: flex; gap: 5px; margin-top: 10px; }
 .claim-select { flex-grow: 1; padding: 5px; border-radius: 5px; border: none; font-size: 0.8rem; }
 .btn-claim { background: white; color: #d97706; border: none; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
 /* Inputs & Buttons */
-input, select {
-    background: var(--bg-input);
-    border: 1px solid transparent;
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    font-family: inherit;
-    outline: none;
-    width: 100%;
-}
+input, select { background: var(--bg-input); border: 1px solid transparent; color: white; padding: 10px; border-radius: 8px; font-family: inherit; outline: none; width: 100%; }
 input:focus, select:focus { border-color: var(--primary); }
 
 button { cursor: pointer; border: none; font-weight: 600; border-radius: 8px; transition: 0.2s; }
+button:active { transform: translateY(2px); }
 .btn-icon { background: var(--primary); color: white; width: 42px; border-radius: 8px; font-size: 1.1rem; }
 .btn-primary { background: var(--primary); color: white; padding: 12px; width: 100%; }
 .btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); padding: 12px; width: 100%; }
 
-/* Dice & Logs */
+/* Logs */
 .dice-card { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
-.dice-result { font-size: 1.5rem; font-weight: 700; color: var(--warning); margin: 5px 0; }
-.log-container { flex-grow: 1; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 0.85rem; border: 1px solid #334155; max-height: 250px; }
+.dice-result { font-size: 1.5rem; font-weight: 700; color: var(--warning); margin: 5px 0; letter-spacing: 2px; }
+.log-container { flex-grow: 1; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 0.85rem; border: 1px solid #334155; max-height: 200px; }
 #logList { list-style: none; padding: 0; margin: 0; }
 #logList li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); }
 
 /* --- DASHBOARD --- */
-.main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
-.grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+.main-content { flex-grow: 1; padding: 30px; overflow-y: auto; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
+.grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
 
 /* --- PLAYER CARD --- */
 .card {
-    background: var(--bg-card);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: var(--shadow);
-    border: 1px solid #334155;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: relative; /* For Jail Overlay */
-    overflow: hidden;
+    background: var(--bg-card); border-radius: 16px; padding: 15px;
+    box-shadow: var(--shadow); border: 1px solid #334155;
+    display: flex; flex-direction: column; gap: 10px;
+    position: relative; overflow: hidden; transition: transform 0.2s;
 }
+.card:hover { border-color: #475569; }
 
-/* JAIL STYLES */
+/* Stats Row (Net Worth) */
+.stats-row { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 4px; }
+.stat-val { font-weight: bold; color: #fff; }
+
 .card.jailed { border-color: var(--danger); }
 .card.jailed::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.3) 10px, rgba(0,0,0,0.3) 20px);
-    pointer-events: none;
-    z-index: 0;
+    pointer-events: none; z-index: 0;
 }
-.jailed-badge {
-    background: var(--danger); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
-    display: none;
-}
+.jailed-badge { background: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: none; }
 .card.jailed .jailed-badge { display: inline-block; }
 
 .card-header { display: flex; justify-content: space-between; align-items: center; z-index: 1; }
-.money-badge { font-size: 1.5rem; font-weight: 700; color: var(--success); }
-.player-avatar { width: 45px; height: 45px; border-radius: 50%; background: #334155; }
+.money-container { text-align: right; }
+.money-badge { font-size: 1.4rem; font-weight: 700; color: var(--success); transition: color 0.3s; }
+.player-avatar { width: 40px; height: 40px; border-radius: 50%; background: #334155; }
 
 /* Buttons inside card */
 .btn-go { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; width: 100%; padding: 8px; display: flex; justify-content: center; gap: 8px; z-index: 1; }
 .btn-go:disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
 
 .control-row { display: flex; gap: 5px; z-index: 1; }
-.btn-add { background: var(--success); color: #000; width: 40px; }
-.btn-pay { background: var(--danger); color: white; width: 40px; }
-.btn-buy { background: var(--primary); color: white; padding: 0 15px; }
+.btn-add { background: var(--success); color: #000; width: 40px; font-weight: bold;}
+.btn-pay { background: var(--danger); color: white; width: 40px; font-weight: bold;}
+.btn-buy { background: var(--primary); color: white; padding: 0 10px; font-size: 0.9rem;}
 
-.jail-btn { background: #334155; color: var(--text-muted); width: 100%; padding: 5px; font-size: 0.8rem; margin-top: 5px; z-index: 1;}
-.jail-btn:hover { background: #475569; }
+.jail-btn { background: #334155; color: var(--text-muted); width: 100%; padding: 6px; font-size: 0.8rem; margin-top: 5px; z-index: 1;}
 
-/* Properties */
-.props-container { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; min-height: 80px; max-height: 150px; overflow-y: auto; z-index: 1; }
-
+/* Properties & Houses */
+.props-container { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; min-height: 80px; max-height: 200px; overflow-y: auto; z-index: 1; }
 .prop-tag {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 5px;
-    border-left: 5px solid #64748b; /* Default Color */
+    display: flex; flex-direction: column;
+    background: #334155; padding: 6px 8px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 5px;
+    border-left: 5px solid #64748b;
 }
+.prop-header { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+.prop-details { display: flex; justify-content: space-between; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); }
+
+/* House Icons */
+.house-indicator { display: flex; gap: 2px; }
+.house-pip { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.5); }
+.hotel-pip { width: 12px; height: 12px; background: #ef4444; border-radius: 2px; box-shadow: 0 0 2px rgba(0,0,0,0.5); }
 
 /* Property Colors */
 .prop-brown { border-left-color: #8d5524; }
@@ -171,30 +151,32 @@ button { cursor: pointer; border: none; font-weight: 600; border-radius: 8px; tr
 .prop-railroad { border-left-color: #000; }
 .prop-utility { border-left-color: #cbd5e1; }
 
-/* Mortgaged State */
 .prop-tag.mortgaged { opacity: 0.5; background: #1e293b; }
-.prop-tag.mortgaged span { text-decoration: line-through; }
+.prop-tag.mortgaged .prop-header span { text-decoration: line-through; }
 
-.prop-actions { display: flex; gap: 5px; }
-.btn-small { background: none; color: var(--text-muted); padding: 2px; font-size: 0.8rem; opacity: 0.7; }
-.btn-small:hover { opacity: 1; color: white; }
+.prop-actions { display: flex; gap: 6px; }
+.btn-tiny { background: rgba(255,255,255,0.1); color: #fff; border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; }
+.btn-tiny:hover { background: rgba(255,255,255,0.2); }
 
-/* --- SPECTATOR MODE (TV/PHONE VIEW) --- */
-body.spectator .control-row,    /* Hide Money Inputs */
-body.spectator .btn-go,         /* Hide Pass Go */
-body.spectator .jail-btn,       /* Hide Jail Toggle */
-body.spectator .prop-actions,   /* Hide Mortgage/Delete property buttons */
-body.spectator .sidebar .input-group, /* Hide Add Player */
-body.spectator .sidebar .btn-primary, /* Hide Roll Dice */
-body.spectator .sidebar .btn-danger,  /* Hide Reset Game */
-body.spectator .pot-controls,   /* Hide Add to Pot */
-body.spectator .claim-row       /* Hide Claim Pot */
-{
-    display: none !important;
+/* --- MOBILE & SPECTATOR --- */
+@media (max-width: 768px) {
+    .app-wrapper { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; max-height: 250px; padding: 10px; }
+    .sidebar-content { flex-direction: row; flex-wrap: wrap; }
+    .pot-card, .dice-card { flex: 1; min-width: 140px; }
+    .log-container { display: none; } /* Hide logs on mobile to save space */
+    .brand { font-size: 1.1rem; }
+    .grid-container { grid-template-columns: 1fr; }
 }
 
-/* Make things look bigger/cleaner on TV */
-body.spectator .card {
-    pointer-events: none; /* Prevent clicking */
-    border-color: transparent;
-}
+body.spectator .control-row,    
+body.spectator .btn-go,         
+body.spectator .jail-btn,       
+body.spectator .prop-actions,   
+body.spectator .sidebar .input-group, 
+body.spectator .sidebar .btn-primary, 
+body.spectator .sidebar .btn-danger,  
+body.spectator .pot-controls,   
+body.spectator .claim-row,
+body.spectator .prop-details /* Hide house controls in spectator */
+{ display: none !important; }
