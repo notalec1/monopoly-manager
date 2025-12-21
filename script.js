@@ -26,6 +26,7 @@ window.resetGame = resetGame;
 window.updateMoney = updateMoney;
 window.addProperty = addProperty;
 window.deleteProperty = deleteProperty;
+window.transferMoney = transferMoney;
 
 // --- 5. REALTIME LISTENERS ---
 
@@ -84,15 +85,33 @@ function addPlayer() {
     input.value = "";
 }
 
+// We need to fetch ALL players to build the dropdown list
+// We can use a global variable or just fetch it inside the render
+let allPlayersData = {}; 
+
+// Update the main listener to save data globally
+onValue(playersRef, (snapshot) => {
+    const playersGrid = document.getElementById("playersGrid");
+    playersGrid.innerHTML = "";
+    const data = snapshot.val();
+    allPlayersData = data || {}; // Save for dropdowns
+
+    if (data) {
+        Object.keys(data).forEach(key => {
+            renderPlayerCard(key, data[key]);
+        });
+    }
+});
+
 function renderPlayerCard(id, player) {
     const grid = document.getElementById("playersGrid");
     
-    // Determine Color Badge
-    let colorClass = "#10b981"; // Green
-    if (player.money < 1000) colorClass = "#f59e0b"; // Orange
-    if (player.money < 500) colorClass = "#ef4444"; // Red
+    // Color Logic
+    let colorClass = "#10b981"; 
+    if (player.money < 1000) colorClass = "#f59e0b"; 
+    if (player.money < 500) colorClass = "#ef4444"; 
 
-    // Build Properties List HTML
+    // Build Properties
     let propsHtml = "";
     if (player.properties) {
         Object.entries(player.properties).forEach(([propId, propName]) => {
@@ -108,7 +127,14 @@ function renderPlayerCard(id, player) {
         propsHtml = `<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:10px;">No properties yet</div>`;
     }
 
-    // Create Card Element
+    // --- NEW: Build Transfer Dropdown Options ---
+    let transferOptions = `<option value="">Select Player...</option>`;
+    Object.keys(allPlayersData).forEach(otherId => {
+        if(otherId !== id) { // Don't allow paying yourself
+            transferOptions += `<option value="${otherId}">${allPlayersData[otherId].name}</option>`;
+        }
+    });
+
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -117,12 +143,24 @@ function renderPlayerCard(id, player) {
             <div class="money-badge" style="color:${colorClass}">$${player.money}</div>
         </div>
         
+        <!-- Money Controls -->
         <div class="control-row">
             <input type="number" id="amount-${id}" placeholder="Amount...">
             <button class="btn-add" onclick="updateMoney('${id}', '${player.name}', 1)">+</button>
             <button class="btn-pay" onclick="updateMoney('${id}', '${player.name}', -1)">-</button>
         </div>
 
+        <!-- NEW: Transfer Controls -->
+        <div class="control-row" style="margin-top:5px;">
+            <select id="transfer-${id}" style="width:100%; padding:8px; border-radius:8px; background:#334155; color:white; border:none;">
+                ${transferOptions}
+            </select>
+            <button class="btn-pay" style="width:auto; padding:0 10px;" onclick="transferMoney('${id}', '${player.name}')">Pay Rent</button>
+        </div>
+
+        <div style="border-top:1px solid #334155; margin: 15px 0;"></div>
+
+        <!-- Property Controls -->
         <div class="control-row">
             <input type="text" id="prop-${id}" placeholder="Property Name...">
             <button class="btn-buy" onclick="addProperty('${id}', '${player.name}')">Buy</button>
@@ -191,4 +229,35 @@ function resetGame() {
         set(logsRef, {});
         set(diceRef, "--");
     }
+}
+
+// Add this function at the bottom
+function transferMoney(senderId, senderName) {
+    const amountInput = document.getElementById(`amount-${senderId}`);
+    const targetSelect = document.getElementById(`transfer-${senderId}`);
+    
+    const amount = parseInt(amountInput.value);
+    const targetId = targetSelect.value;
+    
+    if (!amount || !targetId) {
+        alert("Please enter an amount and select a player.");
+        return;
+    }
+
+    // 1. Deduct from Sender
+    const senderRef = ref(db, `players/${senderId}/money`);
+    onValue(senderRef, (snap) => {
+        set(senderRef, snap.val() - amount);
+    }, { onlyOnce: true });
+
+    // 2. Add to Receiver
+    const receiverRef = ref(db, `players/${targetId}/money`);
+    onValue(receiverRef, (snap) => {
+        set(receiverRef, snap.val() + amount);
+        
+        // Log it (We need to fetch receiver name for the log, but let's keep it simple for now)
+        log(`${senderName} paid <span style="color:#ef4444">$${amount}</span> to another player.`);
+    }, { onlyOnce: true });
+
+    amountInput.value = "";
 }
