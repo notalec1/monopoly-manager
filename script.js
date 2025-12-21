@@ -1,4 +1,4 @@
-// --- 1. IMPORTS (ONLY USE THIS SET) ---
+// --- 1. IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, push, onValue, set, remove } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -14,28 +14,28 @@ const firebaseConfig = {
     measurementId: "G-716Y6EQR1C"
 };
 
-// --- 3. INITIALIZE FIREBASE ---
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- 4. EXPORT FUNCTIONS TO HTML (Crucial step!) ---
-// Because this is a module, the HTML cannot see the functions unless we attach them to 'window'
+// --- 3. EXPORTS ---
 window.addPlayer = addPlayer;
 window.rollDice = rollDice;
 window.resetGame = resetGame;
 window.updateMoney = updateMoney;
+window.passGo = passGo;
 window.addProperty = addProperty;
 window.deleteProperty = deleteProperty;
 window.transferMoney = transferMoney;
 
-// --- 5. REALTIME LISTENERS ---
+// --- 4. LISTENERS ---
+let allPlayersData = {}; 
 
-// Listener: Sync Players
 const playersRef = ref(db, 'players');
 onValue(playersRef, (snapshot) => {
     const playersGrid = document.getElementById("playersGrid");
-    playersGrid.innerHTML = ""; // Clear existing cards
+    playersGrid.innerHTML = "";
     const data = snapshot.val();
+    allPlayersData = data || {}; 
 
     if (data) {
         Object.keys(data).forEach(key => {
@@ -44,14 +44,12 @@ onValue(playersRef, (snapshot) => {
     }
 });
 
-// Listener: Sync Logs
 const logsRef = ref(db, 'logs');
 onValue(logsRef, (snapshot) => {
     const list = document.getElementById("logList");
     list.innerHTML = "";
     const data = snapshot.val();
     if (data) {
-        // Show newest logs first
         const logs = Object.values(data).reverse(); 
         logs.forEach(msg => {
             const li = document.createElement("li");
@@ -61,47 +59,32 @@ onValue(logsRef, (snapshot) => {
     }
 });
 
-// Listener: Sync Dice
 const diceRef = ref(db, 'dice');
 onValue(diceRef, (snapshot) => {
     const val = snapshot.val();
     if(val) document.getElementById("diceResult").textContent = val;
 });
 
-// --- 6. GAME FUNCTIONS ---
+// --- 5. FUNCTIONS ---
 
 function addPlayer() {
     const input = document.getElementById("newPlayerName");
     const name = input.value.trim();
     if (!name) return;
 
+    // Generate a random avatar seed
+    const avatarSeed = Math.floor(Math.random() * 5000);
+
     push(playersRef, {
         name: name,
         money: 1500,
+        avatar: avatarSeed,
         properties: {}
     });
     
     log(`<b>${name}</b> joined the game.`);
     input.value = "";
 }
-
-// We need to fetch ALL players to build the dropdown list
-// We can use a global variable or just fetch it inside the render
-let allPlayersData = {}; 
-
-// Update the main listener to save data globally
-onValue(playersRef, (snapshot) => {
-    const playersGrid = document.getElementById("playersGrid");
-    playersGrid.innerHTML = "";
-    const data = snapshot.val();
-    allPlayersData = data || {}; // Save for dropdowns
-
-    if (data) {
-        Object.keys(data).forEach(key => {
-            renderPlayerCard(key, data[key]);
-        });
-    }
-});
 
 function renderPlayerCard(id, player) {
     const grid = document.getElementById("playersGrid");
@@ -111,7 +94,7 @@ function renderPlayerCard(id, player) {
     if (player.money < 1000) colorClass = "#f59e0b"; 
     if (player.money < 500) colorClass = "#ef4444"; 
 
-    // Build Properties
+    // Properties Logic
     let propsHtml = "";
     if (player.properties) {
         Object.entries(player.properties).forEach(([propId, propName]) => {
@@ -127,40 +110,50 @@ function renderPlayerCard(id, player) {
         propsHtml = `<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:10px;">No properties yet</div>`;
     }
 
-    // --- NEW: Build Transfer Dropdown Options ---
+    // Transfer Options
     let transferOptions = `<option value="">Select Player...</option>`;
     Object.keys(allPlayersData).forEach(otherId => {
-        if(otherId !== id) { // Don't allow paying yourself
+        if(otherId !== id) { 
             transferOptions += `<option value="${otherId}">${allPlayersData[otherId].name}</option>`;
         }
     });
+
+    // Avatar URL
+    const seed = player.avatar || player.name;
+    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
 
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
         <div class="card-header">
-            <h3>${player.name}</h3>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="${avatarUrl}" class="player-avatar" alt="avatar">
+                <h3>${player.name}</h3>
+            </div>
             <div class="money-badge" style="color:${colorClass}">$${player.money}</div>
         </div>
         
-        <!-- Money Controls -->
+        <!-- Pass Go Button -->
+        <button class="btn-go" onclick="passGo('${id}', '${player.name}')">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> PASS GO (Collect $200)
+        </button>
+        <div style="margin-bottom: 15px;"></div>
+
         <div class="control-row">
             <input type="number" id="amount-${id}" placeholder="Amount...">
             <button class="btn-add" onclick="updateMoney('${id}', '${player.name}', 1)">+</button>
             <button class="btn-pay" onclick="updateMoney('${id}', '${player.name}', -1)">-</button>
         </div>
 
-        <!-- NEW: Transfer Controls -->
         <div class="control-row" style="margin-top:5px;">
             <select id="transfer-${id}" style="width:100%; padding:8px; border-radius:8px; background:#334155; color:white; border:none;">
                 ${transferOptions}
             </select>
-            <button class="btn-pay" style="width:auto; padding:0 10px;" onclick="transferMoney('${id}', '${player.name}')">Pay Rent</button>
+            <button class="btn-pay" style="width:auto; padding:0 10px;" onclick="transferMoney('${id}', '${player.name}')">Pay</button>
         </div>
 
         <div style="border-top:1px solid #334155; margin: 15px 0;"></div>
 
-        <!-- Property Controls -->
         <div class="control-row">
             <input type="text" id="prop-${id}" placeholder="Property Name...">
             <button class="btn-buy" onclick="addProperty('${id}', '${player.name}')">Buy</button>
@@ -173,23 +166,57 @@ function renderPlayerCard(id, player) {
     grid.appendChild(card);
 }
 
+// --- LOGIC FUNCTIONS ---
+
 function updateMoney(id, name, multiplier) {
     const input = document.getElementById(`amount-${id}`);
     const amount = parseInt(input.value);
     if (!amount) return;
 
-    const pRef = ref(db, `players/${id}/money`);
-    // Read current value once, then update
-    onValue(pRef, (snap) => {
-        const current = snap.val();
-        const newVal = current + (amount * multiplier);
-        set(pRef, newVal);
-    }, { onlyOnce: true });
+    performTransaction(id, amount * multiplier);
 
     const action = multiplier > 0 ? "received" : "paid";
     const color = multiplier > 0 ? "#10b981" : "#ef4444";
     log(`${name} ${action} <span style="color:${color}">$${amount}</span>`);
+    
     input.value = "";
+}
+
+function passGo(id, name) {
+    performTransaction(id, 200);
+    log(`${name} passed GO and collected <span style="color:#10b981">$200</span>`);
+}
+
+function performTransaction(id, amount) {
+    const pRef = ref(db, `players/${id}/money`);
+    onValue(pRef, (snap) => {
+        const current = snap.val();
+        set(pRef, current + amount);
+    }, { onlyOnce: true });
+}
+
+function transferMoney(senderId, senderName) {
+    const amountInput = document.getElementById(`amount-${senderId}`);
+    const targetSelect = document.getElementById(`transfer-${senderId}`);
+    
+    const amount = parseInt(amountInput.value);
+    const targetId = targetSelect.value;
+    
+    if (!amount || !targetId) {
+        alert("Please enter an amount and select a player.");
+        return;
+    }
+
+    // 1. Deduct
+    performTransaction(senderId, -amount);
+    // 2. Add
+    performTransaction(targetId, amount);
+
+    // Get Target Name (Visual only)
+    const targetName = allPlayersData[targetId].name;
+    log(`${senderName} paid <span style="color:#ef4444">$${amount}</span> to ${targetName}`);
+    
+    amountInput.value = "";
 }
 
 function addProperty(id, name) {
@@ -229,35 +256,4 @@ function resetGame() {
         set(logsRef, {});
         set(diceRef, "--");
     }
-}
-
-// Add this function at the bottom
-function transferMoney(senderId, senderName) {
-    const amountInput = document.getElementById(`amount-${senderId}`);
-    const targetSelect = document.getElementById(`transfer-${senderId}`);
-    
-    const amount = parseInt(amountInput.value);
-    const targetId = targetSelect.value;
-    
-    if (!amount || !targetId) {
-        alert("Please enter an amount and select a player.");
-        return;
-    }
-
-    // 1. Deduct from Sender
-    const senderRef = ref(db, `players/${senderId}/money`);
-    onValue(senderRef, (snap) => {
-        set(senderRef, snap.val() - amount);
-    }, { onlyOnce: true });
-
-    // 2. Add to Receiver
-    const receiverRef = ref(db, `players/${targetId}/money`);
-    onValue(receiverRef, (snap) => {
-        set(receiverRef, snap.val() + amount);
-        
-        // Log it (We need to fetch receiver name for the log, but let's keep it simple for now)
-        log(`${senderName} paid <span style="color:#ef4444">$${amount}</span> to another player.`);
-    }, { onlyOnce: true });
-
-    amountInput.value = "";
 }
