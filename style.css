@@ -1,24 +1,21 @@
 :root {
-    --bg-body: #0f172a;       /* Deep Navy */
-    --bg-sidebar: #1e293b;    /* Lighter Navy */
+    --bg-body: #0f172a;
+    --bg-sidebar: #1e293b;
     --bg-card: #1e293b;
     --bg-input: #334155;
-    
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     
-    --primary: #6366f1;       /* Indigo */
+    --primary: #6366f1;
     --primary-hover: #4f46e5;
-    --success: #10b981;       /* Emerald */
-    --danger: #ef4444;        /* Red */
-    --warning: #f59e0b;       /* Amber */
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
     
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -29,20 +26,17 @@ body {
     overflow: hidden;
 }
 
-.app-wrapper {
-    display: flex;
-    height: 100%;
-}
+.app-wrapper { display: flex; height: 100%; }
 
 /* --- SIDEBAR --- */
 .sidebar {
-    width: 320px;
+    width: 340px;
     background-color: var(--bg-sidebar);
     border-right: 1px solid #334155;
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    gap: 24px;
+    padding: 20px;
+    gap: 20px;
     flex-shrink: 0;
 }
 
@@ -52,207 +46,135 @@ body {
     color: var(--primary);
     display: flex;
     align-items: center;
-    gap: 12px;
-    letter-spacing: -0.5px;
+    gap: 10px;
 }
 
 .sidebar-content {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
     overflow-y: auto;
 }
 
-.section-title {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
+/* NEW: Free Parking Pot */
+.pot-card {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
 }
+.pot-amount { font-size: 2rem; font-weight: 800; margin: 5px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.pot-controls { display: flex; gap: 5px; margin-top: 10px; }
+.btn-pot { background: rgba(0,0,0,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; flex-grow: 1; }
+.btn-pot:hover { background: rgba(0,0,0,0.4); }
+
+.claim-row { display: flex; gap: 5px; margin-top: 10px; }
+.claim-select { flex-grow: 1; padding: 5px; border-radius: 5px; border: none; font-size: 0.8rem; }
+.btn-claim { background: white; color: #d97706; border: none; padding: 5px 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
 /* Inputs & Buttons */
-input {
+input, select {
     background: var(--bg-input);
     border: 1px solid transparent;
     color: white;
-    padding: 12px;
+    padding: 10px;
     border-radius: 8px;
     font-family: inherit;
     outline: none;
-    transition: 0.2s;
     width: 100%;
 }
+input:focus, select:focus { border-color: var(--primary); }
 
-input:focus {
-    border-color: var(--primary);
-    background: #475569;
-}
+button { cursor: pointer; border: none; font-weight: 600; border-radius: 8px; transition: 0.2s; }
+.btn-icon { background: var(--primary); color: white; width: 42px; border-radius: 8px; font-size: 1.1rem; }
+.btn-primary { background: var(--primary); color: white; padding: 12px; width: 100%; }
+.btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); padding: 12px; width: 100%; }
 
-.input-group {
-    display: flex;
-    gap: 8px;
-}
-
-button {
-    cursor: pointer;
-    border: none;
-    font-family: inherit;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.2s;
-}
-
-.btn-icon {
-    background: var(--primary);
-    color: white;
-    width: 46px;
-    border-radius: 8px;
-    font-size: 1.1rem;
-}
-.btn-icon:hover { background: var(--primary-hover); }
-
-.btn-primary { background: var(--primary); color: white; padding: 12px; }
-.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-
-.btn-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); padding: 12px; }
-.btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
-
-.full-width { width: 100%; }
-
-/* Dice Box */
-.dice-card {
-    background: rgba(0,0,0,0.2);
-    padding: 16px;
-    border-radius: 12px;
-    text-align: center;
-    border: 1px solid #334155;
-}
-
-.dice-header { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 8px; }
-.dice-result { font-size: 1.5rem; font-weight: 700; color: var(--warning); margin-bottom: 12px; }
-
-/* Logs */
-.log-container {
-    flex-grow: 1;
-    background: rgba(0,0,0,0.2);
-    border-radius: 8px;
-    padding: 10px;
-    overflow-y: auto;
-    font-size: 0.85rem;
-    border: 1px solid #334155;
-    max-height: 300px;
-}
-
+/* Dice & Logs */
+.dice-card { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; text-align: center; border: 1px solid #334155; }
+.dice-result { font-size: 1.5rem; font-weight: 700; color: var(--warning); margin: 5px 0; }
+.log-container { flex-grow: 1; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 0.85rem; border: 1px solid #334155; max-height: 250px; }
 #logList { list-style: none; padding: 0; margin: 0; }
-#logList li { 
-    padding: 6px 0; 
-    border-bottom: 1px solid rgba(255,255,255,0.05); 
-    color: var(--text-muted);
-}
-#logList li:first-child { color: var(--text-main); font-weight: 500; }
+#logList li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); }
 
-/* --- MAIN DASHBOARD --- */
-.main-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 32px;
-    overflow-y: auto;
-}
-
-.top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
-}
-
-.top-bar h1 { margin: 0; font-size: 2rem; font-weight: 700; }
-
-.status-indicator {
-    background: rgba(16, 185, 129, 0.1);
-    color: var(--success);
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; }
-
-/* Grid */
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 24px;
-}
+/* --- DASHBOARD --- */
+.main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+.grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
 
 /* --- PLAYER CARD --- */
 .card {
     background: var(--bg-card);
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px;
     box-shadow: var(--shadow);
     border: 1px solid #334155;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    transition: transform 0.2s;
+    gap: 12px;
+    position: relative; /* For Jail Overlay */
+    overflow: hidden;
 }
 
-.card:hover { transform: translateY(-3px); border-color: var(--primary); }
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #334155;
+/* JAIL STYLES */
+.card.jailed { border-color: var(--danger); }
+.card.jailed::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.3) 10px, rgba(0,0,0,0.3) 20px);
+    pointer-events: none;
+    z-index: 0;
 }
+.jailed-badge {
+    background: var(--danger); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
+    display: none;
+}
+.card.jailed .jailed-badge { display: inline-block; }
 
-.card-header h3 { margin: 0; font-size: 1.25rem; }
+.card-header { display: flex; justify-content: space-between; align-items: center; z-index: 1; }
 .money-badge { font-size: 1.5rem; font-weight: 700; color: var(--success); }
+.player-avatar { width: 45px; height: 45px; border-radius: 50%; background: #334155; }
 
-/* Control Groups within Card */
-.control-row {
-    display: flex;
-    gap: 8px;
-}
+/* Buttons inside card */
+.btn-go { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; width: 100%; padding: 8px; display: flex; justify-content: center; gap: 8px; z-index: 1; }
+.btn-go:disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
 
+.control-row { display: flex; gap: 5px; z-index: 1; }
 .btn-add { background: var(--success); color: #000; width: 40px; }
 .btn-pay { background: var(--danger); color: white; width: 40px; }
-.btn-buy { background: var(--primary); color: white; padding: 0 16px; }
+.btn-buy { background: var(--primary); color: white; padding: 0 15px; }
+
+.jail-btn { background: #334155; color: var(--text-muted); width: 100%; padding: 5px; font-size: 0.8rem; margin-top: 5px; z-index: 1;}
+.jail-btn:hover { background: #475569; }
 
 /* Properties */
-.props-container {
-    background: rgba(0,0,0,0.2);
-    border-radius: 8px;
-    padding: 10px;
-    min-height: 80px;
-    max-height: 150px;
-    overflow-y: auto;
-}
+.props-container { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; min-height: 80px; max-height: 150px; overflow-y: auto; z-index: 1; }
 
 .prop-tag {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #334155;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: #334155; padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 5px;
+    border-left: 5px solid #64748b; /* Default Color */
 }
 
-.btn-del-prop {
-    background: none;
-    color: #ef4444;
-    padding: 4px;
-    opacity: 0.7;
-}
-.btn-del-prop:hover { opacity: 1; background: rgba(255,0,0,0.1); }
+/* Property Colors */
+.prop-brown { border-left-color: #8d5524; }
+.prop-lightblue { border-left-color: #aae0fa; }
+.prop-pink { border-left-color: #d93a96; }
+.prop-orange { border-left-color: #f7941d; }
+.prop-red { border-left-color: #ed1b24; }
+.prop-yellow { border-left-color: #fef200; }
+.prop-green { border-left-color: #1fb25a; }
+.prop-blue { border-left-color: #0072bb; }
+.prop-railroad { border-left-color: #000; }
+.prop-utility { border-left-color: #cbd5e1; }
+
+/* Mortgaged State */
+.prop-tag.mortgaged { opacity: 0.5; background: #1e293b; }
+.prop-tag.mortgaged span { text-decoration: line-through; }
+
+.prop-actions { display: flex; gap: 5px; }
+.btn-small { background: none; color: var(--text-muted); padding: 2px; font-size: 0.8rem; opacity: 0.7; }
+.btn-small:hover { opacity: 1; color: white; }
