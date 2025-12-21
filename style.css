@@ -178,3 +178,23 @@ button { cursor: pointer; border: none; font-weight: 600; border-radius: 8px; tr
 .prop-actions { display: flex; gap: 5px; }
 .btn-small { background: none; color: var(--text-muted); padding: 2px; font-size: 0.8rem; opacity: 0.7; }
 .btn-small:hover { opacity: 1; color: white; }
+
+/* --- SPECTATOR MODE (TV/PHONE VIEW) --- */
+body.spectator .control-row,    /* Hide Money Inputs */
+body.spectator .btn-go,         /* Hide Pass Go */
+body.spectator .jail-btn,       /* Hide Jail Toggle */
+body.spectator .prop-actions,   /* Hide Mortgage/Delete property buttons */
+body.spectator .sidebar .input-group, /* Hide Add Player */
+body.spectator .sidebar .btn-primary, /* Hide Roll Dice */
+body.spectator .sidebar .btn-danger,  /* Hide Reset Game */
+body.spectator .pot-controls,   /* Hide Add to Pot */
+body.spectator .claim-row       /* Hide Claim Pot */
+{
+    display: none !important;
+}
+
+/* Make things look bigger/cleaner on TV */
+body.spectator .card {
+    pointer-events: none; /* Prevent clicking */
+    border-color: transparent;
+}
