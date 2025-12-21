@@ -363,3 +363,20 @@ function resetGame() {
         set(diceRef, "--");
     }
 }
+
+// --- ADMIN VS SPECTATOR LOGIC ---
+function checkMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // If "?admin=true" is NOT in the URL, hide controls
+    if (!urlParams.has('admin')) {
+        document.body.classList.add('spectator');
+        
+        // Optional: Change Sidebar Title for TV
+        const brand = document.querySelector('.brand');
+        if(brand) brand.innerHTML = '<i class="fa-solid fa-tv"></i> Live Scoreboard';
+    }
+}
+
+// Run immediately
+checkMode();
