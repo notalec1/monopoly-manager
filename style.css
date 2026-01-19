@@ -246,3 +246,32 @@ body.is-banker .banker-only {
     margin-left: 5px;
     display: inline-block;
 }
+
+/* --- STRICT VIEW-ONLY MODE FOR NON-ADMINS --- */
+
+/* By default, hide all gameplay controls */
+.btn-go,
+.control-row,
+.btn-buy,
+.jail-btn,
+.prop-actions, /* The mortgage/delete buttons */
+.banker-only   /* The global controls we added earlier */
+{
+    display: none !important;
+}
+
+/* ONLY show them if the user is the Banker */
+body.is-banker .btn-go,
+body.is-banker .control-row,
+body.is-banker .btn-buy,
+body.is-banker .jail-btn,
+body.is-banker .prop-actions,
+body.is-banker .banker-only
+{
+    display: flex !important;
+}
+
+/* Ensure the buy button shows as block/inline-block correctly */
+body.is-banker .btn-buy {
+    display: block !important;
+}
