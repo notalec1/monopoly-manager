@@ -180,3 +180,44 @@ body.spectator .pot-controls,
 body.spectator .claim-row,
 body.spectator .prop-details /* Hide house controls in spectator */
 { display: none !important; }
+
+/* --- AUTH OVERLAY --- */
+.auth-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-body);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+    transition: opacity 0.3s;
+}
+.auth-overlay.hidden { opacity: 0; pointer-events: none; }
+
+.auth-card {
+    background: var(--bg-card); padding: 30px; border-radius: 16px;
+    width: 100%; max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155;
+    text-align: center;
+}
+
+.auth-error {
+    background: rgba(239, 68, 68, 0.2); color: var(--danger);
+    padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem;
+}
+
+.divider {
+    margin: 20px 0; color: var(--text-muted); font-size: 0.8rem;
+    display: flex; align-items: center; gap: 10px;
+}
+.divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px; background: #334155;
+}
+
+.btn-google {
+    background: white; color: #333; width: 100%; padding: 10px;
+    border-radius: 8px; font-weight: 600; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn-anon {
+    background: transparent; border: 1px solid #334155; color: var(--text-muted);
+    width: 100%; padding: 10px; border-radius: 8px; cursor: pointer;
+}
+.btn-anon:hover { background: #334155; color: white; }
