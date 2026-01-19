@@ -28,19 +28,19 @@ const auth = getAuth(app);
 let allPlayersData = {}; 
 let gameStartTime = null;
 let currentUser = null;
-let adminUid = null; // Defined by DB
+let adminUid = null; // This will be loaded from the Database
 let isRegistering = false;
 
-// Database References
+// --- 4. DATABASE REFERENCES ---
 const playersRef = ref(db, 'players');
 const potRef = ref(db, 'pot');
 const logsRef = ref(db, 'logs');
 const diceRef = ref(db, 'dice');
 const timerRef = ref(db, 'gameState/startTime');
-const adminRef = ref(db, 'gameSettings/adminUid'); // MANUAL ADMIN CHECK
+const adminRef = ref(db, 'gameSettings/adminUid'); // Where we check who the boss is
 
-// --- 4. EXPORTS ---
-// Game
+// --- 5. EXPORTS ---
+// Game Functions
 window.addPlayer = addPlayer;
 window.rollDice = rollDice;
 window.resetGame = resetGame;
@@ -56,7 +56,7 @@ window.toggleMortgage = toggleMortgage;
 window.updateHouses = updateHouses;
 window.bankruptPlayer = bankruptPlayer;
 
-// Auth
+// Auth Functions
 window.handleEmailAuth = handleEmailAuth;
 window.signInGoogle = signInGoogle;
 window.signInAnon = signInAnon;
@@ -64,145 +64,306 @@ window.logout = logout;
 window.toggleAuthMode = toggleAuthMode;
 window.handlePasswordReset = handlePasswordReset;
 
-// --- 5. AUTHENTICATION LOGIC ---
+// --- 6. AUTHENTICATION LOGIC ---
 
+// Monitor Login State
 onAuthStateChanged(auth, (user) => {
     const overlay = document.getElementById("authOverlay");
     
     if (user) {
+        // User is logged in
         currentUser = user;
-        overlay.classList.add("hidden");
+        overlay.classList.add("hidden"); // Hide the login screen
         console.log("Logged in as:", user.uid);
+        
+        // Start listening to DB changes
         initGameListeners();
         checkMode();
     } else {
+        // User is logged out
         currentUser = null;
-        overlay.classList.remove("hidden");
+        overlay.classList.remove("hidden"); // Show the login screen
+        
+        // Stop listening to DB to save resources/security
         detachGameListeners();
     }
 });
 
 async function signInGoogle() {
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
-    catch (e) { showAuthError(e.message); }
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        showAuthError(error.message);
+    }
 }
 
 async function signInAnon() {
-    try { await signInAnonymously(auth); } 
-    catch (e) { showAuthError(e.message); }
+    try {
+        await signInAnonymously(auth);
+    } catch (error) {
+        showAuthError(error.message);
+    }
 }
 
 async function handleEmailAuth(e) {
     e.preventDefault();
     const email = document.getElementById("emailInput").value;
     const pass = document.getElementById("passInput").value;
+
     try {
-        if (isRegistering) await createUserWithEmailAndPassword(auth, email, pass);
-        else await signInWithEmailAndPassword(auth, email, pass);
-    } catch (e) { showAuthError(e.message.replace("auth/", "")); }
+        if (isRegistering) {
+            await createUserWithEmailAndPassword(auth, email, pass);
+        } else {
+            await signInWithEmailAndPassword(auth, email, pass);
+        }
+    } catch (error) {
+        // Clean up error message (remove "auth/" prefix)
+        let msg = error.code.replace("auth/", "").replace(/-/g, " ");
+        showAuthError(msg);
+    }
 }
 
 function toggleAuthMode() {
     isRegistering = !isRegistering;
-    document.getElementById("authBtnLabel").textContent = isRegistering ? "Create Account" : "Sign In";
-    document.getElementById("toggleAuthText").textContent = isRegistering ? "Have an account? Sign In" : "Need an account? Register";
+    const btn = document.getElementById("authBtnLabel");
+    const toggleText = document.getElementById("toggleAuthText");
+    
+    if(isRegistering) {
+        btn.textContent = "Create Account";
+        toggleText.textContent = "Have an account? Sign In";
+    } else {
+        btn.textContent = "Sign In";
+        toggleText.textContent = "Need an account? Register";
+    }
 }
 
 async function handlePasswordReset() {
     const email = document.getElementById("emailInput").value;
     if(!email) return showAuthError("Please enter your email first.");
-    try { await sendPasswordResetEmail(auth, email); alert("Password reset email sent!"); } 
-    catch (e) { showAuthError(e.message); }
+    
+    try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Password reset email sent!");
+    } catch (error) {
+        showAuthError(error.message);
+    }
 }
 
-function logout() { signOut(auth); window.location.reload(); }
-function showAuthError(msg) { 
+function logout() {
+    signOut(auth);
+    window.location.reload(); 
+}
+
+function showAuthError(msg) {
     const el = document.getElementById("authError");
-    el.textContent = msg; el.style.display = "block"; 
+    el.textContent = msg;
+    el.style.display = "block";
 }
 
-// --- 6. LISTENERS ---
+// --- 7. DATABASE LISTENERS ---
 
 function initGameListeners() {
     
-    // --- ADMIN CHECK LISTENER ---
-    // We strictly READ from the DB. We do not set ourselves as admin.
+    // 1. ADMIN CHECK LISTENER
+    // This checks the DB to see if I am the admin
     onValue(adminRef, (snap) => {
         adminUid = snap.val();
         
         const bankerDisplay = document.getElementById("bankerNameDisplay");
         
+        // Check if current user matches the DB admin UID
         if (currentUser && adminUid === currentUser.uid) {
-            // MATCH! Show admin controls
-            document.body.classList.add('is-banker'); 
+            document.body.classList.add('is-banker'); // Reveals Admin Buttons via CSS
             if(bankerDisplay) bankerDisplay.textContent = "YOU 👑";
         } else {
-            // NO MATCH. Hide controls.
-            document.body.classList.remove('is-banker');
+            document.body.classList.remove('is-banker'); // Hides Admin Buttons via CSS
             if(bankerDisplay) bankerDisplay.textContent = "The Boss"; 
         }
     });
 
+    // 2. PLAYERS LISTENER
     onValue(playersRef, (snapshot) => {
         const playersGrid = document.getElementById("playersGrid");
         playersGrid.innerHTML = "";
         const data = snapshot.val();
         allPlayersData = data || {}; 
+
         updatePotDropdown();
+
         if (data) {
-            const sorted = Object.entries(data).sort((a, b) => calculateNetWorth(b[1]) - calculateNetWorth(a[1]));
-            sorted.forEach(([key, player]) => renderPlayerCard(key, player));
+            // Sort by Net Worth (Wealth Leaderboard logic)
+            const sorted = Object.entries(data).sort((a, b) => {
+                const nwA = calculateNetWorth(a[1]);
+                const nwB = calculateNetWorth(b[1]);
+                return nwB - nwA; // Descending order
+            });
+
+            sorted.forEach(([key, player]) => {
+                renderPlayerCard(key, player);
+            });
         }
     });
 
-    onValue(potRef, (s) => document.getElementById("potAmount").textContent = `$${s.val() || 0}`);
-    
+    // 3. POT LISTENER
+    onValue(potRef, (snapshot) => {
+        const val = snapshot.val() || 0;
+        document.getElementById("potAmount").textContent = `$${val}`;
+    });
+
+    // 4. LOGS LISTENER
     onValue(logsRef, (snapshot) => {
         const list = document.getElementById("logList");
         list.innerHTML = "";
         const data = snapshot.val();
         if (data) {
-            Object.values(data).reverse().forEach(msg => {
+            const logs = Object.values(data).reverse(); 
+            logs.forEach(msg => {
                 const li = document.createElement("li");
-                li.innerHTML = msg; list.appendChild(li);
+                li.innerHTML = msg; 
+                list.appendChild(li);
             });
         }
     });
 
-    onValue(diceRef, (s) => { if(s.val()) document.getElementById("diceResult").innerHTML = s.val(); });
+    // 5. DICE LISTENER
+    onValue(diceRef, (snapshot) => {
+        if(snapshot.val()) document.getElementById("diceResult").innerHTML = snapshot.val();
+    });
 
+    // 6. TIMER LISTENER
     onValue(timerRef, (snap) => {
         gameStartTime = snap.val();
-        if(!gameStartTime && currentUser && adminUid === currentUser.uid) {
-            // Only admin initializes timer if missing
+        
+        // Only Admin initializes timer if it's missing
+        if(!gameStartTime && isAdmin(false)) { 
             set(timerRef, Date.now());
         }
     });
 }
 
 function detachGameListeners() {
-    off(playersRef); off(potRef); off(logsRef); off(diceRef); off(timerRef); off(adminRef);
+    off(playersRef);
+    off(potRef);
+    off(logsRef);
+    off(diceRef);
+    off(timerRef);
+    off(adminRef);
 }
 
+// Timer Interval (Runs locally every second)
 setInterval(() => {
     const display = document.getElementById("gameTimer");
-    if(!gameStartTime) { display.textContent = "00:00:00"; return; }
+    if(!gameStartTime) {
+        display.textContent = "00:00:00";
+        return;
+    }
     const diff = Date.now() - gameStartTime;
-    const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
-    display.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    display.textContent = 
+        `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
 }, 1000);
 
-// --- 7. FUNCTIONS ---
+// --- 8. GAME FUNCTIONS & SECURITY ---
+
+// Helper: Returns true if current user is the database-defined admin
+function isAdmin(showAlert = true) {
+    if (currentUser && adminUid === currentUser.uid) {
+        return true;
+    }
+    if (showAlert) alert("⛔ Only the Banker/Admin can do this!");
+    return false;
+}
+
+// -- ADMIN ONLY FUNCTIONS --
 
 function addPlayer() {
     if(!currentUser) return;
+    if(!isAdmin()) return; // Security Check
+
     const input = document.getElementById("newPlayerName");
     const name = input.value.trim();
     if (!name) return;
-    push(playersRef, { name, money: 1500, avatar: Math.floor(Math.random()*5000), isJailed: false, properties: {} });
-    log(`<b>${name}</b> joined.`);
+
+    push(playersRef, {
+        name: name,
+        money: 1500,
+        avatar: Math.floor(Math.random() * 5000),
+        isJailed: false,
+        properties: {}
+    });
+    
+    log(`<b>${name}</b> joined the game.`);
     input.value = "";
 }
+
+function rollDice() {
+    if(!isAdmin()) return; // Security Check
+
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    
+    const diceIcons = ["⚀","⚁","⚂","⚃","⚄","⚅"];
+    const resultHtml = `<span style="font-size:2rem">${diceIcons[d1-1]} ${diceIcons[d2-1]}</span> <br> <span style="font-size:1rem">${d1+d2}</span>`;
+    
+    set(diceRef, resultHtml);
+    
+    let msg = `${d1} + ${d2} = <b>${d1+d2}</b>`;
+    if (d1 === d2) msg += " (DOUBLES!)";
+    log(`🎲 Rolled: ${msg}`);
+}
+
+function addToPot(amount) {
+    if(!isAdmin()) return; // Security Check
+
+    onValue(potRef, (snap) => {
+        set(potRef, (snap.val() || 0) + amount);
+        log(`Added <span style="color:#f59e0b">$${amount}</span> to Pot.`);
+    }, { onlyOnce: true });
+}
+
+function claimPot() {
+    if(!isAdmin()) return; // Security Check
+
+    const winnerId = document.getElementById("potWinner").value;
+    if(!winnerId) return alert("Select a winner!");
+
+    onValue(potRef, (snap) => {
+        const potValue = snap.val() || 0;
+        if(potValue === 0) return;
+        
+        performTransaction(winnerId, potValue);
+        set(potRef, 0);
+        
+        // Trigger Confetti
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+        const name = allPlayersData[winnerId].name;
+        log(`🎰 <b>${name}</b> WON THE <span style="color:#f59e0b">$${potValue}</span> JACKPOT!`);
+    }, { onlyOnce: true });
+}
+
+function resetGame() {
+    if(!isAdmin()) return; // Security Check
+
+    if(confirm("⚠ WARNING: NUKE THE GAME? This deletes EVERYTHING.")) {
+        const updates = {};
+        updates['players'] = null;
+        updates['logs'] = null;
+        updates['pot'] = 0;
+        updates['dice'] = "--";
+        updates['gameState/startTime'] = Date.now();
+        
+        // NOTE: We do NOT reset 'gameSettings/adminUid' so you stay admin
+
+        update(ref(db), updates);
+        log(`☢ <b>GAME NUKED</b> by the Banker!`);
+    }
+}
+
+// -- PUBLIC FUNCTIONS (Any player can do these) --
 
 function calculateNetWorth(player) {
     let nw = player.money || 0;
@@ -212,8 +373,11 @@ function calculateNetWorth(player) {
                 nw += (parseInt(p.cost) || 0); 
                 const houses = p.houses || 0;
                 const isHotel = p.isHotel || false;
-                if(isHotel) nw += 500; else nw += (houses * 100);
-            } else { nw += (parseInt(p.cost) || 0) / 2; }
+                if(isHotel) nw += 500;
+                else nw += (houses * 100);
+            } else {
+                nw += (parseInt(p.cost) || 0) / 2; 
+            }
         });
     }
     return nw;
@@ -222,79 +386,136 @@ function calculateNetWorth(player) {
 function updatePotDropdown() {
     const select = document.getElementById("potWinner");
     select.innerHTML = `<option value="">Select Winner...</option>`;
-    Object.keys(allPlayersData).forEach(id => select.innerHTML += `<option value="${id}">${allPlayersData[id].name}</option>`);
+    Object.keys(allPlayersData).forEach(id => {
+        select.innerHTML += `<option value="${id}">${allPlayersData[id].name}</option>`;
+    });
 }
 
 function renderPlayerCard(id, player) {
     const grid = document.getElementById("playersGrid");
-    let colorClass = player.money < 500 ? "#ef4444" : "#10b981"; 
+    
+    // Status Logic
+    let colorClass = "#10b981"; 
+    if (player.money < 500) colorClass = "#ef4444"; 
+
+    const jailClass = player.isJailed ? "jailed" : "";
     const netWorth = calculateNetWorth(player);
 
+    // Build Properties HTML
     let propsHtml = "";
     if (player.properties) {
         Object.entries(player.properties).forEach(([propId, propObj]) => {
+            const pName = propObj.name;
+            const pColor = propObj.color || "railroad";
+            const pMortgaged = propObj.mortgaged ? "mortgaged" : "";
             const houses = propObj.houses || 0;
             const isHotel = propObj.isHotel || false;
-            let housePips = isHotel ? `<div class="hotel-pip"></div>` : "";
-            if(!isHotel) for(let i=0; i<houses; i++) housePips += `<div class="house-pip"></div>`;
+
+            // Visual House Pips
+            let housePips = "";
+            if(isHotel) housePips = `<div class="hotel-pip"></div>`;
+            else {
+                for(let i=0; i<houses; i++) housePips += `<div class="house-pip"></div>`;
+            }
 
             propsHtml += `
-            <div class="prop-tag prop-${propObj.color||"railroad"} ${propObj.mortgaged?"mortgaged":""}">
-                <div class="prop-header"><span>${propObj.name}</span><div class="house-indicator">${housePips}</div></div>
+            <div class="prop-tag prop-${pColor} ${pMortgaged}">
+                <div class="prop-header">
+                    <span>${pName}</span>
+                    <div class="house-indicator">${housePips}</div>
+                </div>
                 <div class="prop-details">
                     <div class="prop-actions">
                          <button class="btn-tiny" onclick="updateHouses('${id}', '${propId}', 1)">+🏠</button>
                          <button class="btn-tiny" onclick="updateHouses('${id}', '${propId}', -1)">-🏠</button>
                     </div>
                     <div class="prop-actions">
-                        <button class="btn-tiny" onclick="toggleMortgage('${id}', '${propId}')"><i class="fa-solid fa-ban"></i></button>
-                        <button class="btn-tiny" style="color:#ef4444" onclick="deleteProperty('${id}', '${propId}', '${player.name}', '${propObj.name}')"><i class="fa-solid fa-trash"></i></button>
+                        <button class="btn-tiny" onclick="toggleMortgage('${id}', '${propId}')">
+                            <i class="fa-solid fa-ban"></i>
+                        </button>
+                        <button class="btn-tiny" style="color:#ef4444" onclick="deleteProperty('${id}', '${propId}', '${player.name}', '${pName}')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>`;
         });
-    } else { propsHtml = `<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:10px;">No properties</div>`; }
+    } else {
+        propsHtml = `<div style="color:#64748b; font-size:0.8rem; text-align:center; padding:10px;">No properties</div>`;
+    }
 
     let transferOptions = `<option value="">Select Player...</option>`;
-    Object.keys(allPlayersData).forEach(otherId => { if(otherId !== id) transferOptions += `<option value="${otherId}">${allPlayersData[otherId].name}</option>`; });
+    Object.keys(allPlayersData).forEach(otherId => {
+        if(otherId !== id) transferOptions += `<option value="${otherId}">${allPlayersData[otherId].name}</option>`;
+    });
 
     const card = document.createElement("div");
-    card.className = `card ${player.isJailed ? "jailed" : ""}`;
+    card.className = `card ${jailClass}`;
     card.innerHTML = `
         <div class="card-header">
             <div style="display:flex; align-items:center; gap:10px;">
                 <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${player.avatar}" class="player-avatar">
-                <div><h3 style="margin:0">${player.name}</h3><span class="jailed-badge">IN JAIL</span></div>
+                <div>
+                    <h3 style="margin:0">${player.name}</h3>
+                    <span class="jailed-badge">IN JAIL</span>
+                </div>
             </div>
-            <div class="money-container"><div class="money-badge" style="color:${colorClass}">$${player.money}</div></div>
+            <div class="money-container">
+                <div class="money-badge" style="color:${colorClass}">$${player.money}</div>
+            </div>
         </div>
-        <div class="stats-row"><span>Net Worth: <span class="stat-val">$${netWorth}</span></span><span>Props: <span class="stat-val">${Object.keys(player.properties || {}).length}</span></span></div>
-        <button class="btn-go" onclick="passGo('${id}', '${player.name}')" ${player.isJailed ? 'disabled' : ''}><i class="fa-solid fa-arrow-right-to-bracket"></i> PASS GO (+$200)</button>
+        
+        <div class="stats-row">
+            <span>Net Worth: <span class="stat-val">$${netWorth}</span></span>
+            <span>Props: <span class="stat-val">${Object.keys(player.properties || {}).length}</span></span>
+        </div>
+
+        <button class="btn-go" onclick="passGo('${id}', '${player.name}')" ${player.isJailed ? 'disabled' : ''}>
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> PASS GO (+$200)
+        </button>
+
         <div class="control-row" style="margin-top:10px">
             <input type="number" id="amount-${id}" placeholder="$$$">
             <button class="btn-add" onclick="updateMoney('${id}', '${player.name}', 1)">+</button>
             <button class="btn-pay" onclick="updateMoney('${id}', '${player.name}', -1)">-</button>
         </div>
+
         <div class="control-row" style="margin-top:5px;">
-            <select id="transfer-${id}" style="border-radius:8px; padding:8px; border:none; width:70%">${transferOptions}</select>
+            <select id="transfer-${id}" style="border-radius:8px; padding:8px; border:none; width:70%">
+                ${transferOptions}
+            </select>
             <button class="btn-pay" style="width:30%; padding:0 5px;" onclick="transferMoney('${id}', '${player.name}')">Pay</button>
         </div>
+
         <div style="border-top:1px solid #334155; margin: 10px 0;"></div>
+
         <div class="control-row">
             <input type="text" id="prop-name-${id}" placeholder="Name..." style="width:50%">
             <input type="number" id="prop-cost-${id}" placeholder="$ Cost" style="width:25%">
             <select id="prop-color-${id}" style="width:25%;">
-                <option value="brown">🟫</option><option value="lightblue">💠</option><option value="pink">🎀</option><option value="orange">🟧</option>
-                <option value="red">🟥</option><option value="yellow">🟨</option><option value="green">🟩</option><option value="blue">🟦</option>
-                <option value="railroad">🚂</option><option value="utility">💡</option>
+                <option value="brown">🟫</option>
+                <option value="lightblue">💠</option>
+                <option value="pink">🎀</option>
+                <option value="orange">🟧</option>
+                <option value="red">🟥</option>
+                <option value="yellow">🟨</option>
+                <option value="green">🟩</option>
+                <option value="blue">🟦</option>
+                <option value="railroad">🚂</option>
+                <option value="utility">💡</option>
             </select>
         </div>
         <button class="btn-buy" style="width:100%; margin-top:5px;" onclick="addProperty('${id}', '${player.name}')">Add Property</button>
-        <div class="props-container" style="margin-top:10px;">${propsHtml}</div>
+
+        <div class="props-container" style="margin-top:10px;">
+            ${propsHtml}
+        </div>
+
         <div style="display:flex; gap:5px; margin-top:5px">
              <button class="jail-btn" onclick="toggleJail('${id}')">${player.isJailed ? "RELEASE" : "JAIL"}</button>
-             <button class="btn-danger jail-btn" onclick="bankruptPlayer('${id}', '${player.name}')">☠</button>
-        </div>`;
+             <button class="jail-btn" style="color:var(--danger)" onclick="bankruptPlayer('${id}', '${player.name}')">☠</button>
+        </div>
+    `;
     grid.appendChild(card);
 }
 
@@ -302,125 +523,135 @@ function updateHouses(playerId, propId, change) {
     if(!currentUser) return;
     const propRef = ref(db, `players/${playerId}/properties/${propId}`);
     onValue(propRef, (snap) => {
-        const prop = snap.val(); if(!prop) return;
-        let houses = prop.houses || 0; let isHotel = prop.isHotel || false;
-        if (change > 0) { if (!isHotel) { if (houses < 4) houses++; else { houses = 0; isHotel = true; } } } 
-        else { if (isHotel) { isHotel = false; houses = 4; } else if (houses > 0) houses--; }
-        update(propRef, { houses, isHotel });
-    }, { onlyOnce: true });
-}
+        const prop = snap.val();
+        if(!prop) return;
 
-function addToPot(amount) {
-    onValue(potRef, (s) => { set(potRef, (s.val()||0)+amount); log(`Added <span style="color:#f59e0b">$${amount}</span> to Pot.`); }, { onlyOnce: true });
-}
+        let houses = prop.houses || 0;
+        let isHotel = prop.isHotel || false;
 
-function claimPot() {
-    const winnerId = document.getElementById("potWinner").value;
-    if(!winnerId) return alert("Select a winner!");
-    onValue(potRef, (snap) => {
-        const val = snap.val() || 0; if(val === 0) return;
-        performTransaction(winnerId, val); set(potRef, 0);
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        log(`🎰 <b>${allPlayersData[winnerId].name}</b> WON THE <span style="color:#f59e0b">$${val}</span> POT!`);
+        if (change > 0) {
+            // Add House
+            if (!isHotel) {
+                if (houses < 4) houses++;
+                else { houses = 0; isHotel = true; }
+            }
+        } else {
+            // Remove House
+            if (isHotel) { isHotel = false; houses = 4; }
+            else if (houses > 0) houses--;
+        }
+
+        update(propRef, { houses: houses, isHotel: isHotel });
     }, { onlyOnce: true });
 }
 
 function toggleJail(id) {
-    const r = ref(db, `players/${id}/isJailed`);
-    onValue(r, (s) => { 
-        set(r, !s.val()); 
-        log(s.val() ? `🕊 ${allPlayersData[id].name} released.` : `🚔 ${allPlayersData[id].name} went to JAIL!`); 
+    const refJail = ref(db, `players/${id}/isJailed`);
+    onValue(refJail, (snap) => {
+        const status = !snap.val();
+        set(refJail, status);
+        const name = allPlayersData[id].name;
+        if(status) {
+            log(`🚔 ${name} went to JAIL!`);
+        } else {
+            log(`🕊 ${name} released from Jail.`);
+        }
     }, { onlyOnce: true });
 }
 
 function bankruptPlayer(id, name) {
-    if(confirm(`Bankrupt ${name}?`)) { remove(ref(db, `players/${id}`)); log(`☠ <b>${name}</b> WENT BANKRUPT!`); }
+    if(confirm(`Are you sure you want to bankrupt ${name}? This cannot be undone.`)) {
+        remove(ref(db, `players/${id}`));
+        log(`☠ <b>${name}</b> WENT BANKRUPT!`);
+    }
 }
 
 function addProperty(id, name) {
-    const n = document.getElementById(`prop-name-${id}`);
-    const c = document.getElementById(`prop-cost-${id}`);
-    const clr = document.getElementById(`prop-color-${id}`);
-    if (!n.value || !c.value) return;
-    push(ref(db, `players/${id}/properties`), { name: n.value.trim(), cost: parseInt(c.value), color: clr.value, mortgaged: false, houses: 0 });
-    log(`${name} bought <b>${n.value}</b> for $${c.value}`);
-    n.value = ""; c.value = "";
+    const nameInput = document.getElementById(`prop-name-${id}`);
+    const costInput = document.getElementById(`prop-cost-${id}`);
+    const colorInput = document.getElementById(`prop-color-${id}`);
+    
+    if (!nameInput.value || !costInput.value) return alert("Name and Cost required");
+
+    push(ref(db, `players/${id}/properties`), {
+        name: nameInput.value.trim(),
+        cost: parseInt(costInput.value),
+        color: colorInput.value,
+        mortgaged: false,
+        houses: 0,
+        isHotel: false
+    });
+    
+    log(`${name} bought <b>${nameInput.value}</b> for $${costInput.value}`);
+    nameInput.value = "";
+    costInput.value = "";
 }
 
-function toggleMortgage(pid, prid) {
-    const r = ref(db, `players/${pid}/properties/${prid}/mortgaged`);
-    onValue(r, (s) => set(r, !s.val()), { onlyOnce: true });
+function toggleMortgage(playerId, propId) {
+    const mRef = ref(db, `players/${playerId}/properties/${propId}/mortgaged`);
+    onValue(mRef, (snap) => {
+        set(mRef, !snap.val());
+    }, { onlyOnce: true });
 }
 
-function updateMoney(id, name, mult) {
+function updateMoney(id, name, multiplier) {
     const input = document.getElementById(`amount-${id}`);
-    const amt = parseInt(input.value); if (!amt) return;
-    performTransaction(id, amt * mult);
-    log(`${name} ${mult > 0 ? "received" : "paid"} <span style="color:${mult>0?"#10b981":"#ef4444"}">$${amt}</span>`);
+    const amount = parseInt(input.value);
+    if (!amount) return;
+
+    performTransaction(id, amount * multiplier);
+
+    const action = multiplier > 0 ? "received" : "paid";
+    const color = multiplier > 0 ? "#10b981" : "#ef4444";
+    log(`${name} ${action} <span style="color:${color}">$${amount}</span>`);
     input.value = "";
 }
 
 function passGo(id, name) {
-    performTransaction(id, 200); confetti({ particleCount: 50, spread: 60, origin: { x: 0.5, y:0.8 } });
+    performTransaction(id, 200);
+    confetti({ particleCount: 50, spread: 60, origin: { x: 0.5, y:0.8 } }); 
     log(`💸 ${name} passed GO (+$200)`);
 }
 
-function performTransaction(id, amt) {
-    const r = ref(db, `players/${id}/money`);
-    onValue(r, (s) => set(r, s.val() + amt), { onlyOnce: true });
+function performTransaction(id, amount) {
+    const pRef = ref(db, `players/${id}/money`);
+    onValue(pRef, (snap) => {
+        set(pRef, snap.val() + amount);
+    }, { onlyOnce: true });
 }
 
-function transferMoney(sid, sname) {
-    const inp = document.getElementById(`amount-${sid}`);
-    const tid = document.getElementById(`transfer-${sid}`).value;
-    const amt = parseInt(inp.value);
-    if (!amt || !tid) return;
-    performTransaction(sid, -amt); performTransaction(tid, amt);
-    log(`${sname} paid <span style="color:#ef4444">$${amt}</span> to ${allPlayersData[tid].name}`);
-    inp.value = "";
+function transferMoney(senderId, senderName) {
+    const amountInput = document.getElementById(`amount-${senderId}`);
+    const targetSelect = document.getElementById(`transfer-${senderId}`);
+    const amount = parseInt(amountInput.value);
+    const targetId = targetSelect.value;
+    
+    if (!amount || !targetId) return alert("Enter amount and select player.");
+
+    performTransaction(senderId, -amount);
+    performTransaction(targetId, amount);
+
+    const targetName = allPlayersData[targetId].name;
+    log(`${senderName} paid <span style="color:#ef4444">$${amount}</span> to ${targetName}`);
+    amountInput.value = "";
 }
 
-function deleteProperty(pid, prid, pname, propn) {
-    if(confirm(`Remove ${propn}?`)) { remove(ref(db, `players/${pid}/properties/${prid}`)); log(`${pname} lost <b>${propn}</b>`); }
-}
-
-function rollDice() {
-    const d1 = Math.floor(Math.random() * 6) + 1, d2 = Math.floor(Math.random() * 6) + 1;
-    const i = ["⚀","⚁","⚂","⚃","⚄","⚅"];
-    set(diceRef, `<span style="font-size:2rem">${i[d1-1]} ${i[d2-1]}</span><br><span style="font-size:1rem">${d1+d2}</span>`);
-    log(`🎲 Rolled: ${d1} + ${d2} = <b>${d1+d2}</b>${d1===d2?" (DOUBLES!)":""}`);
+function deleteProperty(playerId, propId, playerName, propName) {
+    if(confirm(`Remove ${propName} from ${playerName}?`)) {
+        remove(ref(db, `players/${playerId}/properties/${propId}`));
+        log(`${playerName} lost/sold <b>${propName}</b>`);
+    }
 }
 
 function log(msg) {
-    const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    push(logsRef, `<span style="color:#64748b; font-size:0.8em">[${t}]</span> ${msg}`);
-}
-
-function resetGame() {
-    // SECURITY CHECK: Matches against DB value
-    if (adminUid !== currentUser.uid) {
-        return alert("⛔ You are not the database-defined Admin.");
-    }
-
-    if(confirm("⚠ WARNING: NUKE THE GAME? This deletes EVERYTHING.")) {
-        const updates = {};
-        updates['players'] = null;
-        updates['logs'] = null;
-        updates['pot'] = 0;
-        updates['dice'] = "--";
-        updates['gameState/startTime'] = Date.now();
-        // We do NOT update gameSettings/adminUid here. It remains persistent.
-
-        update(ref(db), updates);
-        log(`☢ <b>GAME NUKED</b> by the Admin!`);
-    }
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    push(logsRef, `<span style="color:#64748b; font-size:0.8em">[${time}]</span> ${msg}`);
 }
 
 function checkMode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('admin') && !currentUser) {
+    // If not logged in, we set spectator mode
+    if (!currentUser) {
         document.body.classList.add('spectator');
-        if(document.querySelector('.brand')) document.querySelector('.brand').innerHTML = '<i class="fa-solid fa-tv"></i> Live Scoreboard';
     } else {
         document.body.classList.remove('spectator');
     }
