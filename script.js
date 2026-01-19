@@ -1,7 +1,13 @@
 // --- 1. IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, push, onValue, set, remove, update } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { 
+    getDatabase, ref, push, onValue, set, remove, update, off 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { 
+    getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, 
+    signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+    signOut, sendPasswordResetEmail 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // --- 2. CONFIGURATION ---
 const firebaseConfig = {
@@ -16,8 +22,23 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
-// --- 3. EXPORTS ---
+// --- 3. STATE VARIABLES ---
+let allPlayersData = {}; 
+let gameStartTime = null;
+let isRegistering = false;
+let currentUser = null;
+
+// Database References (Defined but listeners attached later)
+const playersRef = ref(db, 'players');
+const potRef = ref(db, 'pot');
+const logsRef = ref(db, 'logs');
+const diceRef = ref(db, 'dice');
+const timerRef = ref(db, 'gameState/startTime');
+
+// --- 4. EXPORTS ---
+// Game Functions
 window.addPlayer = addPlayer;
 window.rollDice = rollDice;
 window.resetGame = resetGame;
@@ -33,69 +54,173 @@ window.toggleMortgage = toggleMortgage;
 window.updateHouses = updateHouses;
 window.bankruptPlayer = bankruptPlayer;
 
-// --- 4. LISTENERS ---
-let allPlayersData = {}; 
-let gameStartTime = null;
+// Auth Functions
+window.handleEmailAuth = handleEmailAuth;
+window.signInGoogle = signInGoogle;
+window.signInAnon = signInAnon;
+window.logout = logout;
+window.toggleAuthMode = toggleAuthMode;
+window.handlePasswordReset = handlePasswordReset;
 
-const playersRef = ref(db, 'players');
-onValue(playersRef, (snapshot) => {
-    const playersGrid = document.getElementById("playersGrid");
-    playersGrid.innerHTML = "";
-    const data = snapshot.val();
-    allPlayersData = data || {}; 
+// --- 5. AUTHENTICATION LOGIC ---
 
-    updatePotDropdown();
-
-    if (data) {
-        // Sort by Net Worth (Wealth Leaderboard logic)
-        const sorted = Object.entries(data).sort((a, b) => {
-            const nwA = calculateNetWorth(a[1]);
-            const nwB = calculateNetWorth(b[1]);
-            return nwB - nwA; // Descending
-        });
-
-        sorted.forEach(([key, player]) => {
-            renderPlayerCard(key, player);
-        });
+// Listen for Auth State Changes
+onAuthStateChanged(auth, (user) => {
+    const overlay = document.getElementById("authOverlay");
+    
+    if (user) {
+        // User is signed in
+        currentUser = user;
+        overlay.classList.add("hidden");
+        console.log("Logged in as:", user.uid);
+        initGameListeners(); // Start the game data sync
+        checkMode();
+    } else {
+        // User is signed out
+        currentUser = null;
+        overlay.classList.remove("hidden");
+        detachGameListeners(); // Stop data sync
     }
 });
 
-const potRef = ref(db, 'pot');
-onValue(potRef, (snapshot) => {
-    const val = snapshot.val() || 0;
-    document.getElementById("potAmount").textContent = `$${val}`;
-});
-
-const logsRef = ref(db, 'logs');
-onValue(logsRef, (snapshot) => {
-    const list = document.getElementById("logList");
-    list.innerHTML = "";
-    const data = snapshot.val();
-    if (data) {
-        const logs = Object.values(data).reverse(); 
-        logs.forEach(msg => {
-            const li = document.createElement("li");
-            li.innerHTML = msg; 
-            list.appendChild(li);
-        });
+async function signInGoogle() {
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        showAuthError(error.message);
     }
-});
+}
 
-const diceRef = ref(db, 'dice');
-onValue(diceRef, (snapshot) => {
-    if(snapshot.val()) document.getElementById("diceResult").innerHTML = snapshot.val();
-});
-
-const timerRef = ref(db, 'gameState/startTime');
-onValue(timerRef, (snap) => {
-    gameStartTime = snap.val();
-    if(!gameStartTime) {
-        // Initialize timer if not exists
-        set(timerRef, Date.now());
+async function signInAnon() {
+    try {
+        await signInAnonymously(auth);
+    } catch (error) {
+        showAuthError(error.message);
     }
-});
+}
 
-// Timer Interval
+async function handleEmailAuth(e) {
+    e.preventDefault();
+    const email = document.getElementById("emailInput").value;
+    const pass = document.getElementById("passInput").value;
+
+    try {
+        if (isRegistering) {
+            await createUserWithEmailAndPassword(auth, email, pass);
+        } else {
+            await signInWithEmailAndPassword(auth, email, pass);
+        }
+    } catch (error) {
+        let msg = error.code.replace("auth/", "").replace(/-/g, " ");
+        showAuthError(msg);
+    }
+}
+
+function toggleAuthMode() {
+    isRegistering = !isRegistering;
+    const btn = document.getElementById("authBtnLabel");
+    const toggleText = document.getElementById("toggleAuthText");
+    
+    if(isRegistering) {
+        btn.textContent = "Create Account";
+        toggleText.textContent = "Have an account? Sign In";
+    } else {
+        btn.textContent = "Sign In";
+        toggleText.textContent = "Need an account? Register";
+    }
+}
+
+async function handlePasswordReset() {
+    const email = document.getElementById("emailInput").value;
+    if(!email) return showAuthError("Please enter your email first.");
+    
+    try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Password reset email sent!");
+    } catch (error) {
+        showAuthError(error.message);
+    }
+}
+
+function logout() {
+    signOut(auth);
+    // Reload to clear local state visually immediately
+    window.location.reload(); 
+}
+
+function showAuthError(msg) {
+    const el = document.getElementById("authError");
+    el.textContent = msg;
+    el.style.display = "block";
+}
+
+// --- 6. GAME LISTENERS (Wrapped) ---
+
+function initGameListeners() {
+    // Players Listener
+    onValue(playersRef, (snapshot) => {
+        const playersGrid = document.getElementById("playersGrid");
+        playersGrid.innerHTML = "";
+        const data = snapshot.val();
+        allPlayersData = data || {}; 
+        updatePotDropdown();
+        if (data) {
+            const sorted = Object.entries(data).sort((a, b) => {
+                const nwA = calculateNetWorth(a[1]);
+                const nwB = calculateNetWorth(b[1]);
+                return nwB - nwA;
+            });
+            sorted.forEach(([key, player]) => {
+                renderPlayerCard(key, player);
+            });
+        }
+    });
+
+    // Pot Listener
+    onValue(potRef, (snapshot) => {
+        const val = snapshot.val() || 0;
+        document.getElementById("potAmount").textContent = `$${val}`;
+    });
+
+    // Logs Listener
+    onValue(logsRef, (snapshot) => {
+        const list = document.getElementById("logList");
+        list.innerHTML = "";
+        const data = snapshot.val();
+        if (data) {
+            const logs = Object.values(data).reverse(); 
+            logs.forEach(msg => {
+                const li = document.createElement("li");
+                li.innerHTML = msg; 
+                list.appendChild(li);
+            });
+        }
+    });
+
+    // Dice Listener
+    onValue(diceRef, (snapshot) => {
+        if(snapshot.val()) document.getElementById("diceResult").innerHTML = snapshot.val();
+    });
+
+    // Timer Listener
+    onValue(timerRef, (snap) => {
+        gameStartTime = snap.val();
+        if(!gameStartTime) {
+            set(timerRef, Date.now());
+        }
+    });
+}
+
+function detachGameListeners() {
+    off(playersRef);
+    off(potRef);
+    off(logsRef);
+    off(diceRef);
+    off(timerRef);
+}
+
+// Timer Interval (Runs always, but checks for start time)
 setInterval(() => {
     const display = document.getElementById("gameTimer");
     if(!gameStartTime) {
@@ -110,9 +235,12 @@ setInterval(() => {
         `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
 }, 1000);
 
-// --- 5. FUNCTIONS ---
+
+// --- 7. GAME LOGIC FUNCTIONS ---
+// (These remain mostly the same, just checking for Auth implicitly)
 
 function addPlayer() {
+    if(!currentUser) return;
     const input = document.getElementById("newPlayerName");
     const name = input.value.trim();
     if (!name) return;
@@ -124,7 +252,6 @@ function addPlayer() {
         isJailed: false,
         properties: {}
     });
-    
     log(`<b>${name}</b> joined the game.`);
     input.value = "";
 }
@@ -134,15 +261,13 @@ function calculateNetWorth(player) {
     if(player.properties) {
         Object.values(player.properties).forEach(p => {
             if(!p.mortgaged) {
-                nw += (parseInt(p.cost) || 0); // Property Value
-                // Assume house value is rough estimate or added field. 
-                // For now, simplifiction: Houses = $100 value per house (avg)
+                nw += (parseInt(p.cost) || 0); 
                 const houses = p.houses || 0;
                 const isHotel = p.isHotel || false;
                 if(isHotel) nw += 500;
                 else nw += (houses * 100);
             } else {
-                nw += (parseInt(p.cost) || 0) / 2; // Mortgaged value
+                nw += (parseInt(p.cost) || 0) / 2; 
             }
         });
     }
@@ -160,14 +285,11 @@ function updatePotDropdown() {
 function renderPlayerCard(id, player) {
     const grid = document.getElementById("playersGrid");
     
-    // Status Logic
     let colorClass = "#10b981"; 
     if (player.money < 500) colorClass = "#ef4444"; 
-
     const jailClass = player.isJailed ? "jailed" : "";
     const netWorth = calculateNetWorth(player);
 
-    // Build Properties HTML with Houses
     let propsHtml = "";
     if (player.properties) {
         Object.entries(player.properties).forEach(([propId, propObj]) => {
@@ -177,7 +299,6 @@ function renderPlayerCard(id, player) {
             const houses = propObj.houses || 0;
             const isHotel = propObj.isHotel || false;
 
-            // Visual House Pips
             let housePips = "";
             if(isHotel) housePips = `<div class="hotel-pip"></div>`;
             else {
@@ -285,9 +406,8 @@ function renderPlayerCard(id, player) {
     grid.appendChild(card);
 }
 
-// --- LOGIC FUNCTIONS ---
-
 function updateHouses(playerId, propId, change) {
+    if(!currentUser) return;
     const propRef = ref(db, `players/${playerId}/properties/${propId}`);
     onValue(propRef, (snap) => {
         const prop = snap.val();
@@ -297,17 +417,14 @@ function updateHouses(playerId, propId, change) {
         let isHotel = prop.isHotel || false;
 
         if (change > 0) {
-            // Add House
             if (!isHotel) {
                 if (houses < 4) houses++;
                 else { houses = 0; isHotel = true; }
             }
         } else {
-            // Remove House
             if (isHotel) { isHotel = false; houses = 4; }
             else if (houses > 0) houses--;
         }
-
         update(propRef, { houses: houses, isHotel: isHotel });
     }, { onlyOnce: true });
 }
@@ -329,10 +446,7 @@ function claimPot() {
         
         performTransaction(winnerId, potValue);
         set(potRef, 0);
-        
-        // Trigger Confetti
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
         const name = allPlayersData[winnerId].name;
         log(`🎰 <b>${name}</b> WON THE <span style="color:#f59e0b">$${potValue}</span> JACKPOT!`);
     }, { onlyOnce: true });
@@ -344,17 +458,13 @@ function toggleJail(id) {
         const status = !snap.val();
         set(refJail, status);
         const name = allPlayersData[id].name;
-        if(status) {
-            log(`🚔 ${name} went to JAIL!`);
-            // Shake effect could be triggered here via CSS class on body
-        } else {
-            log(`🕊 ${name} released from Jail.`);
-        }
+        if(status) log(`🚔 ${name} went to JAIL!`);
+        else log(`🕊 ${name} released from Jail.`);
     }, { onlyOnce: true });
 }
 
 function bankruptPlayer(id, name) {
-    if(confirm(`Are you sure you want to bankrupt ${name}? This cannot be undone.`)) {
+    if(confirm(`Are you sure you want to bankrupt ${name}?`)) {
         remove(ref(db, `players/${id}`));
         log(`☠ <b>${name}</b> WENT BANKRUPT!`);
     }
@@ -383,9 +493,7 @@ function addProperty(id, name) {
 
 function toggleMortgage(playerId, propId) {
     const mRef = ref(db, `players/${playerId}/properties/${propId}/mortgaged`);
-    onValue(mRef, (snap) => {
-        set(mRef, !snap.val());
-    }, { onlyOnce: true });
+    onValue(mRef, (snap) => { set(mRef, !snap.val()); }, { onlyOnce: true });
 }
 
 function updateMoney(id, name, multiplier) {
@@ -394,7 +502,6 @@ function updateMoney(id, name, multiplier) {
     if (!amount) return;
 
     performTransaction(id, amount * multiplier);
-
     const action = multiplier > 0 ? "received" : "paid";
     const color = multiplier > 0 ? "#10b981" : "#ef4444";
     log(`${name} ${action} <span style="color:${color}">$${amount}</span>`);
@@ -403,7 +510,7 @@ function updateMoney(id, name, multiplier) {
 
 function passGo(id, name) {
     performTransaction(id, 200);
-    confetti({ particleCount: 50, spread: 60, origin: { x: 0.5, y:0.8 } }); // Small burst
+    confetti({ particleCount: 50, spread: 60, origin: { x: 0.5, y:0.8 } });
     log(`💸 ${name} passed GO (+$200)`);
 }
 
@@ -421,7 +528,6 @@ function transferMoney(senderId, senderName) {
     const targetId = targetSelect.value;
     
     if (!amount || !targetId) return alert("Enter amount and select player.");
-
     performTransaction(senderId, -amount);
     performTransaction(targetId, amount);
 
@@ -438,16 +544,11 @@ function deleteProperty(playerId, propId, playerName, propName) {
 }
 
 function rollDice() {
-    // 3D Dice physics would require Three.js (too heavy). 
-    // We stick to standard RNG but add emoji visuals.
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
-    
     const diceIcons = ["⚀","⚁","⚂","⚃","⚄","⚅"];
     const resultHtml = `<span style="font-size:2rem">${diceIcons[d1-1]} ${diceIcons[d2-1]}</span> <br> <span style="font-size:1rem">${d1+d2}</span>`;
-    
     set(diceRef, resultHtml);
-    
     let msg = `${d1} + ${d2} = <b>${d1+d2}</b>`;
     if (d1 === d2) msg += " (DOUBLES!)";
     log(`🎲 Rolled: ${msg}`);
@@ -463,17 +564,17 @@ function resetGame() {
         set(playersRef, {});
         set(logsRef, {});
         set(ref(db, 'pot'), 0);
-        set(ref(db, 'gameState'), {}); // Reset Timer
+        set(ref(db, 'gameState'), {}); 
         set(diceRef, "--");
     }
 }
 
 function checkMode() {
     const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('admin')) {
-        document.body.classList.add('spectator');
-        const brand = document.querySelector('.brand');
-        if(brand) brand.innerHTML = '<i class="fa-solid fa-tv"></i> Live Scoreboard';
+    if (!urlParams.has('admin') && !currentUser) {
+        // If not admin URL and not logged in (logic handled by Auth state)
     }
+    // If you want logged in users to always be admins, remove the spectator check
+    // or keep it to hide UI elements based on logic.
+    document.body.classList.remove('spectator');
 }
-checkMode();
