@@ -221,3 +221,28 @@ body.spectator .prop-details /* Hide house controls in spectator */
     width: 100%; padding: 10px; border-radius: 8px; cursor: pointer;
 }
 .btn-anon:hover { background: #334155; color: white; }
+
+/* --- ROLE SECURITY --- */
+/* Hide sensitive controls by default */
+#nukeBtnContainer, 
+.banker-only {
+    display: none !important;
+}
+
+/* Only show them if the body has the 'is-banker' class */
+body.is-banker #nukeBtnContainer,
+body.is-banker .banker-only {
+    display: flex !important;
+}
+
+/* Add a visual indicator for the banker */
+.banker-badge {
+    background: var(--warning);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-left: 5px;
+    display: inline-block;
+}
