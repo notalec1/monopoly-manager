@@ -63,17 +63,21 @@
 
             <div class="sidebar-content">
                 
+                <div class="sidebar-content">
+                
                 <!-- Free Parking Pot -->
                 <div class="pot-card">
                     <div style="font-size:0.8rem; text-transform:uppercase; opacity:0.8;">Free Parking Pot</div>
                     <div id="potAmount" class="pot-amount">$0</div>
                     
-                    <div class="pot-controls">
+                    <!-- ADDED CLASS: banker-only -->
+                    <div class="pot-controls banker-only">
                         <button class="btn-pot" onclick="addToPot(50)">+$50</button>
                         <button class="btn-pot" onclick="addToPot(100)">+$100</button>
                     </div>
                     
-                    <div class="claim-row">
+                    <!-- ADDED CLASS: banker-only -->
+                    <div class="claim-row banker-only">
                         <select id="potWinner" class="claim-select">
                             <option value="">Select Winner...</option>
                         </select>
@@ -82,7 +86,8 @@
                 </div>
 
                 <!-- Add Player -->
-                <div class="input-group" style="display:flex; gap:5px;">
+                <!-- ADDED CLASS: banker-only -->
+                <div class="input-group banker-only" style="display:flex; gap:5px;">
                     <input type="text" id="newPlayerName" placeholder="New Player Name...">
                     <button class="btn-icon" onclick="addPlayer()">
                         <i class="fa-solid fa-plus"></i>
@@ -92,8 +97,11 @@
                 <!-- Dice -->
                 <div class="dice-card">
                     <div class="dice-result" id="diceResult">--</div>
-                    <button class="btn-primary" onclick="rollDice()">ROLL DICE</button>
+                    <!-- ADDED CLASS: banker-only -->
+                    <button class="btn-primary banker-only" onclick="rollDice()">ROLL DICE</button>
                 </div>
+
+                <!-- Logs ... -->
 
                 <!-- Logs -->
                 <div class="log-container">
