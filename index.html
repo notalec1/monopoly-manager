@@ -101,16 +101,24 @@
                 </div>
             </div>
 
-            <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+            
+        <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+                <!-- Banker Info Display -->
+                <div style="font-size:0.8rem; color:var(--text-muted); text-align:center;">
+                    Banker: <span id="bankerNameDisplay" style="color:var(--warning)">--</span>
+                </div>
+
                 <button class="btn-tiny" onclick="logout()" style="background:#334155; width:100%; padding:10px; font-size:0.9rem;">
                     <i class="fa-solid fa-right-from-bracket"></i> Sign Out
                 </button>
 
-                <button class="btn-danger" onclick="resetGame()">
-                    <i class="fa-solid fa-bomb"></i> Nuke Game
-                </button>
+                <!-- NUKE BUTTON (Wrapped in container) -->
+                <div id="nukeBtnContainer">
+                    <button class="btn-danger" onclick="resetGame()">
+                        <i class="fa-solid fa-bomb"></i> Nuke Game
+                    </button>
+                </div>
             </div>
-        </nav>
 
         <!-- Main Dashboard -->
         <main class="main-content">
